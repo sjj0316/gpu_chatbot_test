@@ -1,0 +1,48 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic==1.16.4",
+    "asyncpg==0.30.0",
+    "bcrypt==3.2.2",
+    "beautifulsoup4==4.13.5",
+    "databases==0.9.0",
+    "fastapi==0.116.1",
+    "jose==1.0.0",
+    "langchain==0.3.27",
+    "langchain-cohere==0.4.5",
+    "langchain-community==0.3.27",
+    "langchain-core==0.3.74",
+    "langchain-huggingface==0.3.1",
+    "langchain-mcp-adapters==0.1.9",
+    "langchain-openai==0.3.31",
+    "langchain-postgres==0.0.15",
+    "langgraph==0.6.6",
+    "passlib[bcrypt]==1.7.4",
+    "pdfplumber==0.11.7",
+    "pgvector==0.3.6",
+    "pillow==11.3.0",
+    "psycopg[binary]==3.2.9",
+    "pydantic-settings==2.10.1",
+    "pydantic[email]==2.11.7",
+    "pyjwt==2.10.1",
+    "python-multipart==0.0.20",
+    "sqlalchemy[postgresql]==2.0.43",
+    "typing-extensions==4.14.1",
+    "uvicorn==0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "black==25.1.0",
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+
+[tool.uv.sources]
+langchain-cohere = { index = "pypi" }

@@ -1,0 +1,32 @@
+stages:
+  - deploy
+
+deploy-to-ec2:
+  stage: deploy
+  image: alpine:3.20
+  variables:
+    GIT_STRATEGY: "none" # 러너에서 코드 체크아웃 안 함 (EC2에서 git pull)
+  before_script:
+    - apk add --no-cache openssh-client bash
+    - eval "$(ssh-agent -s)"
+    # SSH 키: File 타입 변수(값=파일 경로)와 일반(멀티라인) 변수(값=키 내용) 모두 지원
+    - |
+      if [ -n "${SSH_PRIVATE_KEY}" ] && [ -f "${SSH_PRIVATE_KEY}" ]; then
+        chmod 600 "${SSH_PRIVATE_KEY}"
+        ssh-add "${SSH_PRIVATE_KEY}"
+      else
+        printf "%s" "$SSH_PRIVATE_KEY" > id_ssh
+        chmod 600 id_ssh
+        ssh-add id_ssh
+      fi
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    # 호스트 키 등록(최초 1회 수동 등록 권장). 여기선 자동 스캔.
+    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+  script:
+    - >
+      ssh "${DEPLOY_USER}@${DEPLOY_HOST}"
+      "BRANCH=main NO_CACHE=\${NO_CACHE:-0} PRUNE_UNTIL=\${PRUNE_UNTIL:-168h} /home/ec2-user/chatbot/deploy.sh"
+  rules:
+    # main 브랜치 푸시/웹르런 일때만
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success

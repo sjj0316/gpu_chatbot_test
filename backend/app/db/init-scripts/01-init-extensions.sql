@@ -1,0 +1,2 @@
+-- vector EXTENSION 사용하도록 설정
+CREATE EXTENSION IF NOT EXISTS vector;
