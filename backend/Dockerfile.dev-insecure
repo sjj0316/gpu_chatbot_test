@@ -1,42 +1,33 @@
-# 개발용 Dockerfile (사내 프록시 / SSL 이슈 회피 버전)
 FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app
 
-# (필요한 빌드 툴; DB 드라이버 등 빌드시 에러 나면 여기서 추가)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         ca-certificates \
+        openssl \
         libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# (추가) 사내 Root CA를 신뢰스토어에 등록
+COPY certs/corp-root-ca.crt /usr/local/share/ca-certificates/corp-root-ca.crt
+RUN update-ca-certificates
 
-# -------------------------
-# 1) requirements만 먼저 복사
-#    => build cache 활용 + 빠른 실패
-# -------------------------
 COPY requirements.txt ./requirements.txt
 
-# -------------------------
-# 2) pip 설치 (TLS 문제 회피 옵션 포함 - dev 한정)
-# -------------------------
 RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir \
       --trusted-host pypi.org \
       --trusted-host files.pythonhosted.org \
       -r requirements.txt
 
-# -------------------------
-# 3) 실제 소스 전체 복사 (context = ./backend)
-# -------------------------
 COPY . .
 
-# -------------------------
-# 4) FastAPI 실행
-# -------------------------
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

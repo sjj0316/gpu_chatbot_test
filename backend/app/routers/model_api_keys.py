@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, status, Path
 
 from app.dependencies import SessionDep, CurrentUser
-from app.models import User
+# ...existing code...
 from app.schemas import (
     ModelApiKeyCreate,
     ModelApiKeyRead,
@@ -102,10 +102,10 @@ async def get_model_key(
     summary="API Key 수정",
 )
 async def update_model_key(
+    session: SessionDep,
+    current_user: CurrentUser,
     key_id: int = Path(ge=1),
     payload: ModelApiKeyUpdate | None = None,
-    session: SessionDep = None,
-    current_user: CurrentUser = None,
 ):
     svc = ModelApiKeyService(session)
     obj = await svc.get(key_id)
@@ -130,9 +130,9 @@ async def update_model_key(
     summary="API Key 삭제",
 )
 async def delete_model_key(
+    session: SessionDep,
+    current_user: CurrentUser,
     key_id: int = Path(ge=1),
-    session: SessionDep = None,
-    current_user: CurrentUser = None,
 ):
     svc = ModelApiKeyService(session)
     obj = await svc.get(key_id)
