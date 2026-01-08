@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import Sequence
 import asyncio
 import sqlalchemy as sa
-from sqlalchemy import func, select
+from fastapi import HTTPException
+from sqlalchemy import func, select, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import MCPServer
+from app.models import MCPServer, User
 from app.schemas import (
     MCPServerCreate,
     MCPServerRead,
@@ -15,7 +16,7 @@ from app.schemas import (
     MCPToolInfo,
     MCPServerRuntime,
 )
-from app.utils import load_mcp_tools_from_servers
+from app.utils import load_mcp_tools_from_servers, is_admin_user as is_admin
 
 
 def _ilike(term: str) -> str:
@@ -62,10 +63,11 @@ class MCPServerService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create(self, data: MCPServerCreate) -> MCPServerRead:
+    async def create(self, data: MCPServerCreate, *, user: User) -> MCPServerRead:
         exists = await self.session.scalar(
             select(sa.literal(True)).where(
-                func.lower(MCPServer.name) == data.name.lower()
+                func.lower(MCPServer.name) == data.name.lower(),
+                MCPServer.owner_id == user.id,
             )
         )
         if exists:
@@ -76,6 +78,8 @@ class MCPServerService:
             name=data.name.strip(),
             description=(data.description or None),
             config=safe_config,
+            is_public=bool(data.is_public),
+            owner_id=user.id,
         )
         self.session.add(server)
         try:
@@ -87,10 +91,12 @@ class MCPServerService:
         await self.session.refresh(server)
         return MCPServerRead.model_validate(server)
 
-    async def get(self, server_id: int) -> MCPServerRead:
+    async def get(self, server_id: int, *, user: User) -> MCPServerRead:
         server = await self.session.get(MCPServer, server_id)
         if not server:
             raise ValueError(f"존재하지 않는 MCP 서버 ID입니다: {server_id}")
+        if not (server.is_public or server.owner_id == user.id or is_admin(user)):
+            raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
         dto = MCPServerRead.model_validate(server)
         runtime = await probe_mcp_server(server)
         dto = dto.model_copy(update={"runtime": runtime})
@@ -108,11 +114,16 @@ class MCPServerService:
     async def get_list(
         self,
         *,
+        user: User,
         q: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> Sequence[MCPServerRead]:
         stmt = select(MCPServer).order_by(MCPServer.id.desc())
+        if not is_admin(user):
+            stmt = stmt.where(
+                or_(MCPServer.is_public.is_(True), MCPServer.owner_id == user.id)
+            )
         if q:
             pattern = _ilike(q)
             stmt = stmt.where(
@@ -125,10 +136,14 @@ class MCPServerService:
         rows = (await self.session.scalars(stmt)).all()
         return [MCPServerRead.model_validate(r) for r in rows]
 
-    async def update(self, server_id: int, data: MCPServerUpdate) -> MCPServerRead:
+    async def update(
+        self, server_id: int, data: MCPServerUpdate, *, user: User
+    ) -> MCPServerRead:
         server = await self.session.get(MCPServer, server_id, with_for_update=True)
         if not server:
             raise ValueError(f"존재하지 않는 MCP 서버 ID입니다: {server_id}")
+        if not (server.owner_id == user.id or is_admin(user)):
+            raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
 
         if data.name is not None:
             new_name = data.name.strip()
@@ -136,6 +151,7 @@ class MCPServerService:
                 select(sa.literal(True)).where(
                     sa.and_(
                         func.lower(MCPServer.name) == new_name.lower(),
+                        MCPServer.owner_id == server.owner_id,
                         MCPServer.id != server_id,
                     )
                 )
@@ -150,6 +166,9 @@ class MCPServerService:
         if data.config is not None:
             server.config = data.config.model_dump(mode="json")
 
+        if data.is_public is not None:
+            server.is_public = data.is_public
+
         try:
             await self.session.commit()
 
@@ -160,10 +179,12 @@ class MCPServerService:
         await self.session.refresh(server)
         return MCPServerRead.model_validate(server)
 
-    async def delete(self, server_id: int) -> None:
+    async def delete(self, server_id: int, *, user: User) -> None:
         server = await self.session.get(MCPServer, server_id)
         if not server:
             return
+        if not (server.owner_id == user.id or is_admin(user)):
+            raise HTTPException(status_code=403, detail="삭제 권한이 없습니다.")
         await self.session.delete(server)
         try:
             await self.session.commit()

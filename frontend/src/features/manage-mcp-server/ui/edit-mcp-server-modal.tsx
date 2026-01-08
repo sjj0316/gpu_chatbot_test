@@ -36,6 +36,7 @@ export const EditMcpServerModal = ({ open, onOpenChange, target }: EditMcpServer
             initial={{
               name: target.name,
               description: target.description ?? "",
+              is_public: target.is_public,
               config: {
                 transport: String((target.config as any)?.transport ?? "http") as any,
                 url: (target.config as any)?.url ?? "",

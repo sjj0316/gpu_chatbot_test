@@ -35,6 +35,7 @@ export const mcpServerBaseSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(1000).nullable().optional().default(null),
   config: mcpServerConfigSchema,
+  is_public: z.boolean().default(false),
 });
 
 export const mcpServerCreateSchema = mcpServerBaseSchema;
@@ -43,6 +44,7 @@ export const mcpServerUpdateSchema = z.object({
   name: z.string().min(1).max(100).nullable().optional(),
   description: z.string().max(1000).nullable().optional(),
   config: mcpServerConfigSchema.optional(),
+  is_public: z.boolean().optional(),
 });
 
 export const mcpServerReadSchema = z.object({
@@ -50,6 +52,8 @@ export const mcpServerReadSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   config: mcpServerConfigSchema,
+  is_public: z.boolean(),
+  owner_id: z.number().int(),
   runtime: mcpServerRuntimeSchema.nullable().optional().default(null),
 });
 

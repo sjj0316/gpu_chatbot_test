@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { Switch } from "@/shared/ui/switch";
 import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/ui/form";
@@ -14,6 +15,7 @@ type CreateValues = {
   name: string;
   description?: string | null;
   config: MCPServerConfig;
+  is_public?: boolean;
 };
 
 type UpdateValues = Partial<CreateValues>;
@@ -39,6 +41,7 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
       name: "",
       description: "",
       config: { transport: "http", url: "" },
+      is_public: false,
       ...(props.initial ?? {}),
     }),
     [props.initial]
@@ -82,6 +85,18 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
           )}
         />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="is_public"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-md border p-3">
+                <FormLabel className="mb-0">공용</FormLabel>
+                <FormControl>
+                  <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="config.transport"

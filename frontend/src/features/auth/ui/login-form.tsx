@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -78,6 +78,12 @@ export const LoginForm = () => {
             {isLoading ? "로그인 중..." : "로그인"}
           </Button>
         </form>
+        <div className="mt-4 text-center text-sm">
+          <span className="text-muted-foreground">계정이 없나요? </span>
+          <Link className="text-primary underline-offset-4 hover:underline" to="/register">
+            회원가입
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

@@ -51,6 +51,11 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   }))
 );
+const RegisterPage = lazy(() =>
+  import("@/pages/auth").then((module) => ({
+    default: module.RegisterPage,
+  }))
+);
 const MCPServerPage = lazy(() =>
   import("@/pages/mcp-server").then((module) => ({
     default: module.MCPServerPage,
@@ -120,6 +125,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<ComponentLoading />}>
         <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <Suspense fallback={<ComponentLoading />}>
+        <RegisterPage />
       </Suspense>
     ),
   },
