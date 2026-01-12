@@ -7,7 +7,9 @@ from app.models.conversation_history import (
 from app.models.mcp_server import MCPServer
 from app.models.collection import Collection
 from app.models.model_api_key import ModelApiKey
+from app.models.llm_api_key import LLMApiKey
 from app.models.embedding_spec import EmbeddingSpec
+from app.models.wiki_page import WikiPage
 from app.models.lookups import (
     UserRoleLkp,
     ModelProviderLkp,
@@ -25,10 +27,12 @@ __all__ = [
     "MessageStatus",
     "MCPServer",
     "ModelApiKey",
+    "LLMApiKey",
     "UserRoleLkp",
     "ModelProviderLkp",
     "ModelPurposeLkp",
     "MessageRoleLkp",
     "MessageStatusLkp",
     "EmbeddingSpec",
+    "WikiPage",
 ]

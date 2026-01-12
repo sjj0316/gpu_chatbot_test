@@ -3,6 +3,13 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterPayload {
+  username: string;
+  password: string;
+  nickname: string;
+  email: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
@@ -11,6 +18,21 @@ export interface LoginResponse {
 
 export interface RefreshTokenRequest {
   refresh_token: string;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ChangePasswordResponse {
+  detail: string;
+}
+
+export interface UpdateProfilePayload {
+  nickname: string;
+  email: string;
 }
 
 export interface User {

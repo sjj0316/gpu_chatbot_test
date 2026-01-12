@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     postgres_user: str = Field("root", env="POSTGRES_USER")
     postgres_password: str = Field("root", env="POSTGRES_PASSWORD")
     postgres_db: str = Field("db", env="POSTGRES_DB")
+    database_url_override: str | None = Field(default=None, env="DATABASE_URL")
 
     langchain_api_key: str = Field(default="", env="LANGCHAIN_API_KEY")
     langchain_endpoint: str = Field(
@@ -33,6 +34,12 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> str:
+        if self.database_url_override:
+            if self.database_url_override.startswith("postgresql://"):
+                return self.database_url_override.replace(
+                    "postgresql://", "postgresql+asyncpg://", 1
+                )
+            return self.database_url_override
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     model_config = SettingsConfigDict(

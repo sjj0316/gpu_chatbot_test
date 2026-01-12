@@ -1,3 +1,4 @@
+﻿import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/ui/dialog";
@@ -10,6 +11,7 @@ import {
   type ConversationCreate,
 } from "@/entities/conversation";
 import { ModelKeySelect } from "@/entities/model-key";
+import { useChatStore } from "../model";
 
 type CreateConversationModalProps = {
   open: boolean;
@@ -23,20 +25,39 @@ export function CreateConversationModal({
   onCreated,
 }: CreateConversationModalProps) {
   const { mutateAsync, isPending } = useCreateConversation();
+  const selectedModelKeyId = useChatStore((s) => s.selectedModelKeyId);
+  const setSelectedModelKeyId = useChatStore((s) => s.setSelectedModelKeyId);
 
-  const { register, handleSubmit, setValue, watch, formState, reset } = useForm<ConversationCreate>(
-    {
-      resolver: zodResolver(conversationCreateSchema),
-      mode: "onChange",
-      defaultValues: { title: "", default_model_key_id: undefined },
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    getValues,
+    formState,
+    reset,
+  } = useForm<ConversationCreate>({
+    resolver: zodResolver(conversationCreateSchema),
+    mode: "onChange",
+    defaultValues: {
+      title: "",
+      default_model_key_id: selectedModelKeyId ?? undefined,
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const current = getValues("default_model_key_id");
+    if (!current && selectedModelKeyId) {
+      setValue("default_model_key_id", selectedModelKeyId, { shouldValidate: true });
     }
-  );
+  }, [open, selectedModelKeyId, setValue, getValues]);
 
   const onSubmit = async (data: ConversationCreate) => {
     const res = await mutateAsync(data);
     if (res?.id) {
       onOpenChange(false);
-      reset();
+      reset({ title: "", default_model_key_id: selectedModelKeyId ?? undefined });
       onCreated?.(res.id);
     }
   };
@@ -45,17 +66,19 @@ export function CreateConversationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>새 대화</DialogTitle>
+          <DialogTitle>대화 생성</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input {...register("title")} placeholder="대화 제목" />
           <ModelKeySelect
             value={watch("default_model_key_id") ? String(watch("default_model_key_id")) : ""}
             modelKeyType="chat"
-            onChange={(v) =>
-              setValue("default_model_key_id", v ? Number(v) : undefined, { shouldValidate: true })
-            }
-            placeholder="기본 API Key 선택(선택)"
+            onChange={(v) => {
+              const next = v ? Number(v) : undefined;
+              setValue("default_model_key_id", next, { shouldValidate: true });
+              setSelectedModelKeyId(next ?? null);
+            }}
+            placeholder="기본 API 키 선택(선택)"
           />
         </div>
         <DialogFooter>

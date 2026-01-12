@@ -23,6 +23,7 @@ export const ViewMcpServerModal = ({ open, onOpenChange, target }: ViewMcpServer
   const reachable = (detail as any)?.runtime?.reachable ?? undefined;
   const tools = (detail as any)?.runtime?.tools ?? [];
   const error = (detail as any)?.runtime?.error ?? null;
+  const visibility = detail.is_public ? "공용" : "개인";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,6 +49,13 @@ export const ViewMcpServerModal = ({ open, onOpenChange, target }: ViewMcpServer
 
               <div className="text-muted-foreground">설명</div>
               <div className="col-span-2 break-words">{detail.description ?? "-"}</div>
+
+              <div className="text-muted-foreground">공개 범위</div>
+              <div className="col-span-2">
+                <Badge variant={detail.is_public ? "default" : "secondary"}>
+                  {visibility}
+                </Badge>
+              </div>
 
               <div className="text-muted-foreground">Transport</div>
               <div className="col-span-2">{transport}</div>

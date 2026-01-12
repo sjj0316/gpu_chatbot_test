@@ -15,14 +15,14 @@ backend/README.md
 	http://15.165.48.80
 	현재 생성된 테스트용 사용자 계정
 	id : admin
-	pw : data123!
+	pw : ********
 	
 	
 [DB 정보]
 	host : ds-team-db-cluster.cluster-cdwjlhjzkkua.ap-northeast-2.rds.amazonaws.com
 	port : 5432
 	user : dsteam
-	password : dataservice12#
+	password : ********
 	db : dschat
 
 
@@ -36,7 +36,7 @@ backend/README.md
 [백엔드 Swagger]
 	http://15.165.48.80/docs
 	http://15.165.48.80/redoc
-	만료 없는 api key :  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVpZCI6Miwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU2Njk2OTY4LCJzY29wZSI6WyJyYWcucmVhZCIsInJhZy5zZWFyY2giXX0._b5jV-Twguno9KaXVqg3XT4W_hrVwKXJVSzZFYDqk2Q
+	만료 없는 api key :  ********
 
 [gitlab 작업]
 	권장 : origin/dev 기준으로 branch 생성하여 작업 후 PR
@@ -69,10 +69,10 @@ backend\.venv\Scripts\Activate.ps1
 2) 의존성 설치:
 
 ```powershell
-# 권장: requirements.txt 사용
+# requirements.txt 사용
 pip install -r backend\requirements.txt
 
-# 또는 uv 사용 시
+# 권장 : uv 사용
 uv sync
 ```
 

@@ -51,9 +51,29 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   }))
 );
+const RegisterPage = lazy(() =>
+  import("@/pages/auth").then((module) => ({
+    default: module.RegisterPage,
+  }))
+);
+const ChangePasswordPage = lazy(() =>
+  import("@/pages/auth").then((module) => ({
+    default: module.ChangePasswordPage,
+  }))
+);
+const ProfilePage = lazy(() =>
+  import("@/pages/profile").then((module) => ({
+    default: module.ProfilePage,
+  }))
+);
 const MCPServerPage = lazy(() =>
   import("@/pages/mcp-server").then((module) => ({
     default: module.MCPServerPage,
+  }))
+);
+const GuidePage = lazy(() =>
+  import("@/pages/guide").then((module) => ({
+    default: module.GuidePage,
   }))
 );
 
@@ -92,6 +112,18 @@ const protectedRoutesConfig = [
     path: "mcp-servers",
     element: <MCPServerPage />,
   },
+  {
+    path: "change-password",
+    element: <ChangePasswordPage />,
+  },
+  {
+    path: "profile",
+    element: <ProfilePage />,
+  },
+  {
+    path: "guide",
+    element: <GuidePage />,
+  },
 ];
 
 // 보호된 라우터 래퍼
@@ -120,6 +152,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<ComponentLoading />}>
         <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <Suspense fallback={<ComponentLoading />}>
+        <RegisterPage />
       </Suspense>
     ),
   },

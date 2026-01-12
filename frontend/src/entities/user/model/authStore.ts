@@ -1,8 +1,19 @@
 import { create } from "zustand";
-import { authApi, type LoginCredentials, type User, type AuthState } from "../";
+import {
+  authApi,
+  type LoginCredentials,
+  type RegisterPayload,
+  type User,
+  type AuthState,
+  type ChangePasswordPayload,
+  type UpdateProfilePayload,
+} from "../";
 
 interface AuthStore extends AuthState {
   login: (credentials: LoginCredentials) => Promise<any>;
+  register: (payload: RegisterPayload) => Promise<User>;
+  changePassword: (payload: ChangePasswordPayload) => Promise<void>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<User>;
   logout: () => void;
   getCurrentUser: () => Promise<void>;
 }
@@ -31,6 +42,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isAuthenticated: false, isLoading: false });
       throw error;
     }
+  },
+
+  register: async (payload: RegisterPayload) => {
+    const user = await authApi.register(payload);
+    return user;
+  },
+
+  changePassword: async (payload: ChangePasswordPayload) => {
+    await authApi.changePassword(payload);
+  },
+
+  updateProfile: async (payload: UpdateProfilePayload) => {
+    const user = await authApi.updateProfile(payload);
+    set({ user });
+    return user;
   },
 
   logout: () => {

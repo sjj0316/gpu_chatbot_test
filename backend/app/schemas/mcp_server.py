@@ -60,6 +60,7 @@ class MCPServerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(None, max_length=1000)
     config: MCPServerConfig
+    is_public: bool = False
 
 
 class MCPServerCreate(MCPServerBase):
@@ -70,6 +71,7 @@ class MCPServerUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = Field(None, max_length=1000)
     config: MCPServerConfig | None = None
+    is_public: bool | None = None
 
 
 class MCPServerRead(BaseModel):
@@ -77,6 +79,8 @@ class MCPServerRead(BaseModel):
     name: str
     description: str | None
     config: dict[str, Any]
+    is_public: bool
+    owner_id: int
     runtime: MCPServerRuntime | None = None
 
     model_config = ConfigDict(from_attributes=True)

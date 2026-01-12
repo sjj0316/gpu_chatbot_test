@@ -27,7 +27,7 @@ async def create_mcp_server(
     _ = user
     service = MCPServerService(session)
     try:
-        return await service.create(body)
+        return await service.create(body, user=user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -38,15 +38,15 @@ async def create_mcp_server(
     summary="MCP 서버 목록 조회",
 )
 async def list_mcp_servers(
+    session: SessionDep,
+    user: CurrentUser,
     q: str | None = Query(None, description="이름/설명 부분 검색"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    session: SessionDep = None,
-    user: CurrentUser = None,
 ):
     _ = user
     service = MCPServerService(session)
-    return await service.get_list(q=q, offset=offset, limit=limit)
+    return await service.get_list(user=user, q=q, offset=offset, limit=limit)
 
 
 @router.get(
@@ -62,7 +62,7 @@ async def get_mcp_server(
     _ = user
     service = MCPServerService(session)
     try:
-        return await service.get(server_id)
+        return await service.get(server_id, user=user)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -81,7 +81,7 @@ async def update_mcp_server(
     _ = user
     service = MCPServerService(session)
     try:
-        return await service.update(server_id, body)
+        return await service.update(server_id, body, user=user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -99,7 +99,7 @@ async def delete_mcp_server(
     _ = user
     service = MCPServerService(session)
     try:
-        await service.delete(server_id)
+        await service.delete(server_id, user=user)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return None

@@ -21,4 +21,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 EXPOSE 8000
 
+RUN sed -i 's/\r$//' auto-migrate.sh && chmod +x auto-migrate.sh
+
+ENTRYPOINT ["./auto-migrate.sh"]
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host","0.0.0.0","--port","8000", "--proxy-headers","--forwarded-allow-ips=*"]

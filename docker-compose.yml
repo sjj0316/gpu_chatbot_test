@@ -17,13 +17,13 @@ services:
       - "127.0.0.1:15432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./db/initdb:/docker-entrypoint-initdb.d
+      - ./db/init:/docker-entrypoint-initdb.d
 
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev-insecure
+      dockerfile: Dockerfile
     container_name: backend
     restart: unless-stopped
     env_file:

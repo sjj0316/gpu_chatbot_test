@@ -15,3 +15,8 @@ class UserRead(BaseModel):
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdate(BaseModel):
+    nickname: str | None = None
+    email: EmailStr | None = None

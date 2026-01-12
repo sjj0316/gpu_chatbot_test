@@ -6,6 +6,7 @@ from app.services.document import DocumentService
 from app.services.collection import CollectionService
 from app.services.model_api_key import ModelApiKeyService
 from app.services.mcp_server import MCPServerService
+from app.services.wiki import WikiService
 
 __all__ = [
     "AuthService",
@@ -16,4 +17,5 @@ __all__ = [
     "CollectionService",
     "ModelApiKeyService",
     "MCPServerService",
+    "WikiService",
 ]

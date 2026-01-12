@@ -4,17 +4,22 @@ import { toast } from "sonner";
 import { modelKeyQueries } from "./model-key.queries";
 import { updateModelKey } from "./update-model-key";
 import { type ModelApiKeyUpdate } from "../model";
+import { getApiErrorMessage } from "@/shared/api/error";
+
 export const useUpdateModelKey = (id: number) => {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: ModelApiKeyUpdate) => updateModelKey(id, payload),
     onSuccess: () => {
-      toast.success("API Keyê°€ ìˆ˜ì •ë˜ì—ˆìŠµë‹ˆë‹¤.");
+      toast.success("API Å°°¡ ¼öÁ¤µÇ¾ú½À´Ï´Ù.");
       qc.invalidateQueries({ queryKey: modelKeyQueries.all() });
     },
     onError: (e: unknown) => {
-      toast.error("API Key ìˆ˜ì •ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
+      void (async () => {
+        const message = await getApiErrorMessage(e, "API Å° ¼öÁ¤¿¡ ½ÇÆÐÇß½À´Ï´Ù.");
+        toast.error("API Å° ¼öÁ¤ ½ÇÆÐ", { description: message });
+      })();
       console.error(e);
     },
   });

@@ -1,1 +1,1 @@
-export { LoginForm } from "./ui";
+export { LoginForm, RegisterForm, ChangePasswordForm, ProfileForm } from "./ui";

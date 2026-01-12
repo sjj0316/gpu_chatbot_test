@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { modelKeyQueries } from "./model-key.queries";
 import { deleteModelKey } from "./delete-model-key";
+import { getApiErrorMessage } from "@/shared/api/error";
 
 export const useDeleteModelKey = () => {
   const qc = useQueryClient();
@@ -10,11 +11,14 @@ export const useDeleteModelKey = () => {
   return useMutation({
     mutationFn: (id: number) => deleteModelKey(id),
     onSuccess: () => {
-      toast.success("API KeyÍ∞Ä ÏÇ≠Ï†úÎêòÏóàÏäµÎãàÎã§.");
+      toast.success("API ≈∞∞° ªË¡¶µ«æ˙Ω¿¥œ¥Ÿ.");
       qc.invalidateQueries({ queryKey: modelKeyQueries.all() });
     },
     onError: (e: unknown) => {
-      toast.error("API Key ÏÇ≠Ï†úÏóê Ïã§Ìå®ÌñàÏäµÎãàÎã§.");
+      void (async () => {
+        const message = await getApiErrorMessage(e, "API ≈∞ ªË¡¶ø° Ω«∆–«ﬂΩ¿¥œ¥Ÿ.");
+        toast.error("API ≈∞ ªË¡¶ Ω«∆–", { description: message });
+      })();
       console.error(e);
     },
   });

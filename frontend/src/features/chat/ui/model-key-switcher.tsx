@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { ModelKeySelect } from "@/entities/model-key";
 import { useChatStore } from "../model";
 
@@ -18,7 +18,7 @@ export function ModelKeySwitcher({ className }: ModelKeySwitcherProps) {
         value={value}
         modelKeyType="chat"
         onChange={(v) => setSelected(v ? Number(v) : null)}
-        placeholder="API Key 선택"
+        placeholder="API 키 선택"
       />
     </div>
   );

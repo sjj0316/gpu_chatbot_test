@@ -25,6 +25,7 @@ export const MCPServersTableBase = memo(function MCPServersTableBase({
           <TableHead className="w-16">ID</TableHead>
           <TableHead>이름</TableHead>
           <TableHead>설명</TableHead>
+          <TableHead>공용</TableHead>
           <TableHead>Transport</TableHead>
           <TableHead>URL</TableHead>
           <TableHead className="w-40 text-right">액션</TableHead>
@@ -40,6 +41,11 @@ export const MCPServersTableBase = memo(function MCPServersTableBase({
             <TableCell>{it.id}</TableCell>
             <TableCell className="font-medium">{it.name}</TableCell>
             <TableCell className="max-w-[420px] truncate">{it.description ?? ""}</TableCell>
+            <TableCell>
+              <Badge variant={it.is_public ? "default" : "secondary"}>
+                {it.is_public ? "공용" : "개인"}
+              </Badge>
+            </TableCell>
             <TableCell>
               <Badge variant="secondary">{String((it.config as any)?.transport ?? "")}</Badge>
             </TableCell>
