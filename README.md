@@ -69,10 +69,10 @@ backend\.venv\Scripts\Activate.ps1
 2) 의존성 설치:
 
 ```powershell
-# 권장: requirements.txt 사용
+# requirements.txt 사용
 pip install -r backend\requirements.txt
 
-# 또는 uv 사용 시
+# 권장 : uv 사용
 uv sync
 ```
 

@@ -1,4 +1,4 @@
-import { FeatureCard } from "@/shared/ui/feature-card";
+﻿import { FeatureCard } from "@/shared/ui/feature-card";
 import { MessageCircle, FolderOpen, FileText, KeyRound } from "lucide-react";
 
 export const HomeFeatureCards = () => {
@@ -6,10 +6,10 @@ export const HomeFeatureCards = () => {
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
       <FeatureCard
         icon={<MessageCircle className="h-5 w-5" />}
-        title="AI 채팅"
+        title="AI 대화"
         description="AI 챗봇과 대화하며 질문에 대한 답변을 받아보세요."
         to="/chat"
-        buttonText="채팅 시작하기"
+        buttonText="대화 시작하기"
       />
 
       <FeatureCard
@@ -23,7 +23,7 @@ export const HomeFeatureCards = () => {
       <FeatureCard
         icon={<FileText className="h-5 w-5" />}
         title="문서 관리"
-        description="RAG용 문서를 업로드하고 관리하세요."
+        description="RAG에 사용할 문서를 업로드하고 관리하세요."
         to="/documents"
         buttonText="문서 관리"
       />

@@ -1,6 +1,7 @@
 node_modules
 dist
 dist/
+.pnpm-store
 .git
 .gitignore
 .vscode

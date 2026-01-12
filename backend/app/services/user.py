@@ -3,8 +3,8 @@ from sqlalchemy.future import select
 
 from app.models.user import User
 from app.models.lookups import UserRoleLkp
-from app.schemas.user import UserCreate
-from app.utils.security import hash_password
+from app.schemas.user import UserCreate, UserUpdate
+from app.utils.security import hash_password, verify_password
 
 
 class UserService:
@@ -51,3 +51,36 @@ class UserService:
             select(User).order_by(User.id.desc()).limit(limit).offset(offset)
         )
         return result.scalars().all()
+
+    async def update_profile(self, *, user: User, data: UserUpdate) -> User:
+        if data.email and data.email != user.email:
+            result = await self.db.execute(
+                select(User).where(User.email == data.email, User.id != user.id)
+            )
+            existing_email = result.scalar_one_or_none()
+            if existing_email:
+                raise ValueError("Email already exists")
+            user.email = data.email
+
+        if data.nickname is not None:
+            user.nickname = data.nickname
+
+        self.db.add(user)
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def change_password(
+        self, *, user_id: int, current_password: str, new_password: str
+    ) -> None:
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise ValueError("User not found")
+
+        if not verify_password(current_password, user.password):
+            raise ValueError("Invalid current password")
+
+        user.password = hash_password(new_password)
+        self.db.add(user)
+        await self.db.commit()

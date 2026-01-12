@@ -52,9 +52,12 @@ class DocumentService:
                 status_code=404, detail="Model API 키를 찾을 수 없습니다."
             )
         if not (
-            model_api_key.is_public
-            or model_api_key.owner_id == str(self.user.id)
-            or is_admin(self.user)
+            model_api_key.is_active
+            and (
+                model_api_key.is_public
+                or model_api_key.owner_id == str(self.user.id)
+                or is_admin(self.user)
+            )
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -72,9 +75,12 @@ class DocumentService:
                 status_code=404, detail="Model API 키를 찾을 수 없습니다."
             )
         if not (
-            model_api_key.is_public
-            or model_api_key.owner_id == str(self.user.id)
-            or is_admin(self.user)
+            model_api_key.is_active
+            and (
+                model_api_key.is_public
+                or model_api_key.owner_id == str(self.user.id)
+                or is_admin(self.user)
+            )
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

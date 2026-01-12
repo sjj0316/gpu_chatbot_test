@@ -69,7 +69,7 @@ class CollectionService:
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")
 
-        is_owner = str(user.id) == collection.owner_id
+        is_owner = user.id == collection.owner_id
         if not (collection.is_public or is_owner or is_admin(user)):
             raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
 
@@ -90,7 +90,7 @@ class CollectionService:
             name=data.name,
             description=data.description,
             is_public=data.is_public,
-            owner_id=str(user.id),
+            owner_id=user.id,
             embedding_id=emb_spec.id,
         )
 
@@ -126,7 +126,7 @@ class CollectionService:
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")
 
-        is_owner = str(user.id) == collection.owner_id
+        is_owner = user.id == collection.owner_id
         if not (collection.is_public or is_owner or is_admin(user)):
             raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
 
@@ -170,7 +170,7 @@ class CollectionService:
         is_admin_check = is_admin(user)
         condition = or_(
             Collection.is_public.is_(True),
-            Collection.owner_id == str(user.id),
+            Collection.owner_id == user.id,
             is_admin_check,
         )
 
@@ -240,7 +240,7 @@ class CollectionService:
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")
 
-        is_owner = str(user.id) == collection.owner_id
+        is_owner = user.id == collection.owner_id
         if not (is_owner or is_admin(user)):
             raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
 
@@ -265,7 +265,7 @@ class CollectionService:
             one=True,
         )
         document_count = raw.get("document_count", 0)
-        chunk_count = raw.get("chunk_count ", 0)
+        chunk_count = raw.get("chunk_count", 0)
         return CollectionRead(
             collection_id=collection.id,
             table_id=collection.table_name,
@@ -289,7 +289,7 @@ class CollectionService:
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")
 
-        is_owner = str(user.id) == collection.owner_id
+        is_owner = user.id == collection.owner_id
         if not (is_owner or is_admin(user)):
             raise HTTPException(status_code=403, detail="삭제 권한이 없습니다.")
 

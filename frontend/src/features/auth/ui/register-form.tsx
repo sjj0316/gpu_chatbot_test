@@ -1,12 +1,14 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { getApiErrorMessage } from "@/shared/api/error";
 
 import {
   useAuthStore,
@@ -38,9 +40,12 @@ export const RegisterForm = () => {
         email: data.email,
       };
       await registerUser(payload);
+      toast.success("회원가입 완료", { description: "로그인해 주세요." });
       navigate("/login");
     } catch (error) {
-      console.error("회원가입 실패:", error);
+      const message = await getApiErrorMessage(error, "회원가입에 실패했습니다.");
+      toast.error("회원가입 실패", { description: message });
+      console.error("Registration failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -54,11 +59,11 @@ export const RegisterForm = () => {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">사용자명</Label>
+            <Label htmlFor="username">아이디</Label>
             <Input
               id="username"
               {...register("username")}
-              placeholder="사용자명을 입력하세요"
+              placeholder="아이디를 입력하세요"
               disabled={isLoading}
             />
             {errors.username && (
@@ -71,7 +76,7 @@ export const RegisterForm = () => {
             <Input
               id="nickname"
               {...register("nickname")}
-              placeholder="닉네임을 입력하세요"
+              placeholder="표시할 이름을 입력하세요"
               disabled={isLoading}
             />
             {errors.nickname && (
@@ -85,7 +90,7 @@ export const RegisterForm = () => {
               id="email"
               type="email"
               {...register("email")}
-              placeholder="이메일을 입력하세요"
+              placeholder="you@example.com"
               disabled={isLoading}
             />
             {errors.email && (
@@ -129,7 +134,7 @@ export const RegisterForm = () => {
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <span className="text-muted-foreground">이미 계정이 있나요? </span>
+          <span className="text-muted-foreground">이미 계정이 있으신가요? </span>
           <Link className="text-primary underline-offset-4 hover:underline" to="/login">
             로그인
           </Link>

@@ -1,5 +1,13 @@
 import { kyClient } from "@/shared/api/ky-client";
-import type { LoginCredentials, LoginResponse, RegisterPayload, User } from "../types";
+import type {
+  LoginCredentials,
+  LoginResponse,
+  RegisterPayload,
+  User,
+  ChangePasswordPayload,
+  ChangePasswordResponse,
+  UpdateProfilePayload,
+} from "../types";
 
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
@@ -24,6 +32,22 @@ export const authApi = {
   refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
     const response = await kyClient.post("auth/refresh", {
       json: { refresh_token: refreshToken },
+    });
+    return response.json();
+  },
+
+  changePassword: async (
+    payload: ChangePasswordPayload
+  ): Promise<ChangePasswordResponse> => {
+    const response = await kyClient.post("auth/change-password", {
+      json: payload,
+    });
+    return response.json();
+  },
+
+  updateProfile: async (payload: UpdateProfilePayload): Promise<User> => {
+    const response = await kyClient.patch("users/me", {
+      json: payload,
     });
     return response.json();
   },

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Separator } from "@/shared/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { useHistories, useStreamChat, type ChatRequest } from "@/entities/conversation";
@@ -84,10 +84,10 @@ export function ChatShell() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full">
+    <div className="flex h-[calc(100vh-64px-48px)] w-full flex-col md:flex-row">
       <ConversationSidebar selectedId={selectedConversationId} onSelect={setConversationId} />
-      <div className="flex flex-1 flex-col">
-        <Card className="rounded-none border-0 border-l">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Card className="flex h-full flex-col rounded-none border-0 md:border-l">
           <CardHeader className="flex flex-row items-center justify-between py-3">
             <CardTitle className="text-base">
               {selectedConversationId
@@ -100,10 +100,10 @@ export function ChatShell() {
             </div>
           </CardHeader>
           <Separator />
-          <CardContent className="flex h-[calc(100vh-64px-48px)] flex-col p-0">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             {!selectedConversationId ? (
               <div className="flex flex-1 items-center justify-center text-sm opacity-60">
-                좌측에서 대화를 선택하거나 새로 생성하세요.
+                왼쪽에서 대화를 선택하거나 새로 생성하세요.
               </div>
             ) : (
               <>

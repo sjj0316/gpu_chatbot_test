@@ -1,12 +1,14 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { getApiErrorMessage } from "@/shared/api/error";
 
 import {
   useAuthStore,
@@ -34,7 +36,9 @@ export const LoginForm = () => {
       await login(data as LoginCredentials);
       navigate("/");
     } catch (error) {
-      console.error("로그인 실패:", error);
+      const message = await getApiErrorMessage(error, "로그인에 실패했습니다.");
+      toast.error("로그인 실패", { description: message });
+      console.error("Login failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -48,11 +52,11 @@ export const LoginForm = () => {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">사용자명</Label>
+            <Label htmlFor="username">아이디</Label>
             <Input
               id="username"
               {...register("username")}
-              placeholder="사용자명을 입력하세요"
+              placeholder="아이디를 입력하세요"
               disabled={isLoading}
             />
             {errors.username && (
@@ -79,7 +83,7 @@ export const LoginForm = () => {
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
-          <span className="text-muted-foreground">계정이 없나요? </span>
+          <span className="text-muted-foreground">계정이 없으신가요? </span>
           <Link className="text-primary underline-offset-4 hover:underline" to="/register">
             회원가입
           </Link>

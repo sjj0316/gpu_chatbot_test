@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.dependencies import SessionDep, require_admin
-from app.schemas import UserCreate, UserRead
+from app.dependencies import SessionDep, require_admin, CurrentUser
+from app.schemas import UserCreate, UserRead, UserUpdate
 from app.services import UserService
 
 router = APIRouter(prefix="/users", tags=["User"])
@@ -26,3 +26,15 @@ async def list_users(
     _ = current_user
     service = UserService(db)
     return await service.list_users(limit=limit, offset=offset)
+
+
+@router.patch("/me", response_model=UserRead)
+async def update_me(
+    payload: UserUpdate, db: SessionDep, current_user: CurrentUser
+):
+    service = UserService(db)
+    try:
+        updated_user = await service.update_profile(user=current_user, data=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    return updated_user

@@ -11,6 +11,8 @@ backend/.venv
 # Node 관련
 frontend/node_modules
 **/node_modules
+frontend/.pnpm-store
+**/.pnpm-store
 
 # 기타 로그/불필요 파일
 *.log

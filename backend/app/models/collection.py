@@ -22,7 +22,11 @@ class Collection(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String)
     is_public: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    owner_id: Mapped[str] = mapped_column(String, nullable=False)
+    owner_id: Mapped[int] = mapped_column(
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     embedding_id: Mapped[int] = mapped_column(
         sa.ForeignKey("embedding_specs.id", ondelete="RESTRICT"),
         nullable=False,

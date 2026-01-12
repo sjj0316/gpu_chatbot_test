@@ -20,6 +20,21 @@ export interface RefreshTokenRequest {
   refresh_token: string;
 }
 
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+export interface ChangePasswordResponse {
+  detail: string;
+}
+
+export interface UpdateProfilePayload {
+  nickname: string;
+  email: string;
+}
+
 export interface User {
   id: number;
   username: string;

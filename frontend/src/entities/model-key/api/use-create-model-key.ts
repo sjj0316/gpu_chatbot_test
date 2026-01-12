@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { modelKeyQueries } from "./model-key.queries";
 import { createModelKey } from "./create-model-key";
 import { type ModelApiKeyCreate } from "../model";
+import { getApiErrorMessage } from "@/shared/api/error";
 
 export const useCreateModelKey = () => {
   const qc = useQueryClient();
@@ -11,11 +12,14 @@ export const useCreateModelKey = () => {
   return useMutation({
     mutationFn: (payload: ModelApiKeyCreate) => createModelKey(payload),
     onSuccess: () => {
-      toast.success("API Keyê°€ ìƒì„±ë˜ì—ˆìŠµë‹ˆë‹¤.");
+      toast.success("API Å°°¡ »ý¼ºµÇ¾ú½À´Ï´Ù.");
       qc.invalidateQueries({ queryKey: modelKeyQueries.all() });
     },
     onError: (e: unknown) => {
-      toast.error("API Key ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
+      void (async () => {
+        const message = await getApiErrorMessage(e, "API Å° »ý¼º¿¡ ½ÇÆÐÇß½À´Ï´Ù.");
+        toast.error("API Å° »ý¼º ½ÇÆÐ", { description: message });
+      })();
       console.error(e);
     },
   });

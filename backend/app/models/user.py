@@ -10,6 +10,7 @@ from app.db import Base
 if TYPE_CHECKING:
     from .conversation import Conversation
     from .model_api_key import ModelApiKey
+    from .llm_api_key import LLMApiKey
     from .lookups import UserRoleLkp
 
 
@@ -31,5 +32,8 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
     model_api_keys: Mapped[list["ModelApiKey"]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+    llm_api_keys: Mapped[list["LLMApiKey"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )

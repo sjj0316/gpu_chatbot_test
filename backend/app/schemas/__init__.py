@@ -1,10 +1,11 @@
 """Pydantic 스키마 정리"""
 
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.schemas.auth import (
     LoginRequest,
     TokenResponse,
     RefreshRequest,
+    ChangePasswordRequest,
 )
 
 from app.schemas.conversation_history import (
@@ -53,13 +54,16 @@ from app.schemas.mcp_server import (
     MCPToolInfo,
     MCPServerRuntime,
 )
+from app.schemas.wiki import WikiPageRead, WikiPageUpdate
 
 __all__ = [
     "UserCreate",
     "UserRead",
+    "UserUpdate",
     "LoginRequest",
     "TokenResponse",
     "RefreshRequest",
+    "ChangePasswordRequest",
     "ConversationCreate",
     "ConversationRead",
     "ConversationListItem",
@@ -94,4 +98,6 @@ __all__ = [
     "MCPServerRead",
     "MCPToolInfo",
     "MCPServerRuntime",
+    "WikiPageRead",
+    "WikiPageUpdate",
 ]

@@ -1,13 +1,15 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
-import { Upload, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
+import { Info, Upload, X } from "lucide-react";
 
 import {
   useCreateDocument,
@@ -22,6 +24,19 @@ type UploadDocumentModalProps = {
   collectionId: string;
 };
 
+const Hint = ({ text }: { text: string }) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-muted-foreground inline-flex cursor-help items-center">
+          <Info className="h-3.5 w-3.5" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{text}</TooltipContent>
+    </Tooltip>
+  );
+};
+
 export const UploadDocumentModal = ({
   isOpen,
   onOpenChange,
@@ -29,13 +44,14 @@ export const UploadDocumentModal = ({
 }: UploadDocumentModalProps) => {
   const [files, setFiles] = useState<File[]>([]);
   const uploadMutation = useCreateDocument();
+  const hasCollection = Boolean(collectionId);
 
   const {
     register,
     handleSubmit,
     reset,
     control,
-    formState: { isValid, isSubmitting, isDirty },
+    formState: { isValid, isSubmitting },
   } = useForm<DocumentUploadRequest>({
     resolver: zodResolver(documentUploadRequestSchema),
     mode: "onChange",
@@ -58,6 +74,13 @@ export const UploadDocumentModal = ({
   };
 
   const onSubmit = (values: DocumentUploadRequest) => {
+    if (!hasCollection) {
+      toast.error("컬렉션을 선택해주세요.", {
+        description: "문서를 업로드하려면 컬렉션이 필요합니다.",
+      });
+      return;
+    }
+
     if (files.length === 0) return;
 
     uploadMutation.mutate(
@@ -88,7 +111,10 @@ export const UploadDocumentModal = ({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="files">파일 선택</Label>
+            <Label htmlFor="files" className="flex items-center gap-2">
+              파일 선택
+              <Hint text="PDF, TXT, DOCX, MD 파일을 업로드할 수 있습니다." />
+            </Label>
             <Input
               id="files"
               type="file"
@@ -119,9 +145,12 @@ export const UploadDocumentModal = ({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="chunk_size">청크 크기</Label>
+              <Label htmlFor="chunk_size" className="flex items-center gap-2">
+                청크 크기
+                <Hint text="문서를 나누는 단위 크기입니다. 일반적으로 500~1500 사이를 권장합니다." />
+              </Label>
               <Input
                 id="chunk_size"
                 type="number"
@@ -129,7 +158,10 @@ export const UploadDocumentModal = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="chunk_overlap">청크 오버랩</Label>
+              <Label htmlFor="chunk_overlap" className="flex items-center gap-2">
+                청크 오버랩
+                <Hint text="인접 청크 간 겹치는 크기입니다. 10~30% 정도가 적당합니다." />
+              </Label>
               <Input
                 id="chunk_overlap"
                 type="number"
@@ -138,7 +170,10 @@ export const UploadDocumentModal = ({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="modelKey">모델 키 선택 *</Label>
+            <Label htmlFor="modelKey" className="flex items-center gap-2">
+              모델 키 선택 *
+              <Hint text="임베딩에 사용할 API 키를 선택하세요." />
+            </Label>
             <Controller
               control={control}
               name="model_api_key_id"
@@ -153,7 +188,10 @@ export const UploadDocumentModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="metadatas_json">메타데이터 (JSON)</Label>
+            <Label htmlFor="metadatas_json" className="flex items-center gap-2">
+              메타데이터(JSON)
+              <Hint text="키-값 형식의 추가 정보를 JSON으로 입력할 수 있습니다." />
+            </Label>
             <Textarea
               id="metadatas_json"
               rows={3}
@@ -173,7 +211,7 @@ export const UploadDocumentModal = ({
             </Button>
             <Button
               type="submit"
-              disabled={!isValid || files.length === 0 || uploadMutation.isPending}
+              disabled={!hasCollection || !isValid || files.length === 0 || uploadMutation.isPending}
             >
               <Upload className="mr-2 h-4 w-4" />
               {uploadMutation.isPending ? "업로드 중..." : "업로드"}

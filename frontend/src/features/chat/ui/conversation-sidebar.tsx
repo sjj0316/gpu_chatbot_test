@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -30,7 +30,7 @@ export function ConversationSidebar({ selectedId, onSelect }: ConversationSideba
   const items = (data ?? []) as ConversationListItem[];
 
   return (
-    <div className="flex h-full w-72 flex-col border-r">
+    <div className="flex h-64 w-full flex-col border-b md:h-full md:w-72 md:border-r md:border-b-0">
       <div className="flex items-center justify-between p-3">
         <div className="font-semibold">대화 목록</div>
         <Button size="icon" variant="ghost" onClick={() => setOpen(true)}>
