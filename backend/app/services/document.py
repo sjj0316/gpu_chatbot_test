@@ -1,21 +1,20 @@
-from typing import Any, Literal
-from uuid import UUID
 import json
 import logging
 import re
+from typing import Any, Literal
+from uuid import UUID, uuid4
 
-from fastapi import UploadFile, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException, UploadFile, status
 from langchain_core.documents import Document
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, ModelApiKey, Collection
-from app.schemas import DocumentUploadResponse
 from app.db import get_vectorstore, raw_sql
-from app.utils import process_document, get_embedding, is_admin_user as is_admin
-
+from app.models import Collection, ModelApiKey, User
+from app.schemas import DocumentUploadResponse
 from app.services.collection import CollectionService
 from app.services.model_api_key import ModelApiKeyService
-
+from app.utils import get_embedding, process_document
+from app.utils import is_admin_user as is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -94,16 +93,29 @@ class DocumentService:
     ) -> list[str]:
         """컬렉션에 문서를 추가합니다"""
         collection = await self._get_collection()
-        embed = get_embedding(
-            model_name=collection.embedding.model, model_api_key=model_api_key
-        )
+        try:
+            embed = get_embedding(
+                model_name=collection.embedding.model, model_api_key=model_api_key
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        store = await get_vectorstore(
-            collection=collection,
-            embedding=embed,
-        )
-        added_ids = await store.aadd_documents(documents)
-        return added_ids
+        try:
+            store = await get_vectorstore(
+                collection=collection,
+                embedding=embed,
+            )
+            added_ids = await store.aadd_documents(documents)
+            return added_ids
+        except HTTPException:
+            raise
+        except Exception as exc:
+            error_id = uuid4().hex[:8]
+            logger.exception(f"[{error_id}] 벡터스토어 추가 중 오류 발생: {exc!r}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"벡터스토어 추가 중 오류 발생 (error_id={error_id})",
+            ) from exc
 
     async def create(
         self,
@@ -150,24 +162,21 @@ class DocumentService:
                 detail="업로드된 파일들로부터 처리 가능한 문서가 없습니다.",
             )
 
-        try:
-            added_ids = await self.upsert(docs_to_index, model_api_key=model_api_key)
-            if not added_ids:
-                raise HTTPException(
-                    status_code=500,
-                    detail="벡터스토어에 문서를 추가하지 못했습니다.",
-                )
-            response = DocumentUploadResponse(
-                success=True,
-                message=f"{processed_files_count}개 파일에서 {len(added_ids)}개 청크를 추가했습니다.",
-                added_chunk_ids=added_ids,
-                warnings=(failed_files if failed_files else None),
+        added_ids = await self.upsert(docs_to_index, model_api_key=model_api_key)
+        if not added_ids:
+            error_id = uuid4().hex[:8]
+            logger.error(f"[{error_id}] 벡터스토어에 문서를 추가하지 못했습니다.")
+            raise HTTPException(
+                status_code=500,
+                detail=f"벡터스토어에 문서를 추가하지 못했습니다. (error_id={error_id})",
             )
-            return response
-
-        except Exception as e:
-            logger.exception(f"문서 추가 중 오류 발생: {str(e)}")
-            raise HTTPException(status_code=500, detail="벡터스토어 추가 중 오류 발생")
+        response = DocumentUploadResponse(
+            success=True,
+            message=f"{processed_files_count}개 파일에서 {len(added_ids)}개 청크를 추가했습니다.",
+            added_chunk_ids=added_ids,
+            warnings=(failed_files if failed_files else None),
+        )
+        return response
 
     async def get_list(
         self,
@@ -369,9 +378,12 @@ class DocumentService:
         ):
             model_api_key = await self._auto_matched_api_key(collection)
 
-        embed = get_embedding(
-            model_name=collection.embedding.model, model_api_key=model_api_key
-        )
+        try:
+            embed = get_embedding(
+                model_name=collection.embedding.model, model_api_key=model_api_key
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         table = collection.table_name
 
         if search_type == "keyword":
@@ -387,7 +399,7 @@ class DocumentService:
                         langchain_metadata AS metadata
                     FROM {table}
                     WHERE content ILIKE ('%' || :q || '%')
-                    { "  AND langchain_metadata @> CAST(:filter AS jsonb)" if has_filter else "" }
+                    {"  AND langchain_metadata @> CAST(:filter AS jsonb)" if has_filter else ""}
                     ORDER BY langchain_id DESC
                     LIMIT :limit
                     """,
@@ -421,7 +433,7 @@ class DocumentService:
                 ts_rank_cd({col}, q.qs) AS score
             FROM {table}, q
             WHERE {col} @@ q.qs
-                { "  AND langchain_metadata @> CAST(:filter AS jsonb)" if has_filter else "" }
+                {"  AND langchain_metadata @> CAST(:filter AS jsonb)" if has_filter else ""}
             ORDER BY score DESC
             LIMIT :limit
             """
@@ -463,14 +475,22 @@ class DocumentService:
         embed = get_embedding(
             model_name=collection.embedding.model, model_api_key=model_api_key
         )
-        store = await get_vectorstore(
-            collection=collection,
-            use_hybrid_search=(search_type == "hybrid"),  # hybrid만 True
-            embedding=embed,
-        )
-        results = await store.asimilarity_search_with_score(
-            query, k=k_candidates, filter=vf
-        )
+        try:
+            store = await get_vectorstore(
+                collection=collection,
+                use_hybrid_search=(search_type == "hybrid"),
+                embedding=embed,
+            )
+            results = await store.asimilarity_search_with_score(
+                query, k=k_candidates, filter=vf
+            )
+        except Exception as exc:
+            error_id = uuid4().hex[:8]
+            logger.exception(f"[{error_id}] 벡터스토어 검색 중 오류 발생: {exc!r}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"벡터스토어 검색 중 오류 발생 (error_id={error_id})",
+            ) from exc
         results = results[:limit]
         return [
             {

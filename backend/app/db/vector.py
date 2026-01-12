@@ -1,9 +1,14 @@
+import logging
+from uuid import uuid4
+
 from langchain_postgres import PGVectorStore, Column
 from langchain_postgres.v2.hybrid_search_config import HybridSearchConfig
 from asyncpg.exceptions import DuplicateTableError
 from sqlalchemy import text
 
 from .session import pg_engine, engine
+
+logger = logging.getLogger(__name__)
 
 
 async def _exec_many_ddl(stmts: list[str]) -> None:
@@ -124,4 +129,8 @@ async def get_vectorstore(
             hybrid_search_config=hybrid_config,
         )
     except Exception as e:
-        raise RuntimeError(f"Vectorstore 초기화 실패 (인스턴스 생성): {e}")
+        error_id = uuid4().hex[:8]
+        logger.exception(f"[{error_id}] Vectorstore 초기화 실패 (인스턴스 생성): {e!r}")
+        raise RuntimeError(
+            f"Vectorstore 초기화 실패 (인스턴스 생성) (error_id={error_id})"
+        ) from e

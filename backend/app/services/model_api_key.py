@@ -211,16 +211,17 @@ class ModelApiKeyService:
 
         await self.session.commit()
 
-        obj = await self.session.get(
-            ModelApiKey,
-            obj.id,
-            options=(
+        res = await self.session.execute(
+            select(ModelApiKey)
+            .options(
                 undefer(ModelApiKey.api_key),
                 selectinload(ModelApiKey.provider),
                 selectinload(ModelApiKey.purpose),
                 selectinload(ModelApiKey.owner),
-            ),
+            )
+            .where(ModelApiKey.id == obj.id)
         )
+        obj = res.scalar_one()
 
         return obj
 

@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID, uuid4
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,8 @@ from app.schemas import (
 from app.utils import is_admin_user as is_admin
 
 from app.services.model_api_key import ModelApiKeyService
+
+logger = logging.getLogger(__name__)
 
 
 class CollectionService:
@@ -103,7 +106,12 @@ class CollectionService:
             )
         except Exception as e:
             await self.db.rollback()
-            raise RuntimeError(f"컬렉션 생성 중 오류 발생: {str(e)}")
+            error_id = uuid4().hex[:8]
+            logger.exception(f"[{error_id}] 컬렉션 생성 중 오류 발생: {e!r}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"컬렉션 생성 중 오류 발생 (error_id={error_id})",
+            ) from e
 
         return CollectionRead(
             collection_id=collection.id,
@@ -253,6 +261,12 @@ class CollectionService:
 
         await self.db.commit()
         await self.db.refresh(collection)
+        res = await self.db.execute(
+            select(Collection)
+            .options(selectinload(Collection.embedding))
+            .where(Collection.id == collection_id)
+        )
+        collection = res.scalar_one()
 
         raw = await raw_sql(
             self.db,

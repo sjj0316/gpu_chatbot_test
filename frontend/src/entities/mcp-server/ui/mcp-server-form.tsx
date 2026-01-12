@@ -8,6 +8,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/ui/form";
+import { Hint } from "@/shared/ui/hint";
 
 import { mcpServerCreateSchema, mcpServerUpdateSchema, type MCPServerConfig } from "../model";
 
@@ -63,7 +64,10 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>이름</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                이름
+                <Hint text="식별을 위한 서버 이름입니다." />
+              </FormLabel>
               <FormControl>
                 <Input {...field} placeholder="mcp-rag-server" autoComplete="off" />
               </FormControl>
@@ -76,7 +80,10 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>설명</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                설명
+                <Hint text="서버의 용도나 특징을 간단히 적어 주세요." />
+              </FormLabel>
               <FormControl>
                 <Textarea {...field} placeholder="용도, 비고" />
               </FormControl>
@@ -90,7 +97,10 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
             name="is_public"
             render={({ field }) => (
               <FormItem className="flex items-center justify-between rounded-md border p-3">
-                <FormLabel className="mb-0">공용</FormLabel>
+                <FormLabel className="mb-0 flex items-center gap-2">
+                  공개
+                  <Hint text="공개 설정 시 다른 사용자에게 노출될 수 있습니다." />
+                </FormLabel>
                 <FormControl>
                   <Switch checked={!!field.value} onCheckedChange={field.onChange} />
                 </FormControl>
@@ -102,7 +112,10 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
             name="config.transport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Transport</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  Transport
+                  <Hint text="서버 연결 방식(예: http, streamable_http)을 선택하세요." />
+                </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="선택" />
@@ -121,7 +134,10 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
             name="config.url"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>URL</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  URL
+                  <Hint text="MCP 서버 주소를 입력하세요. 예: http://host:8080" />
+                </FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="http://host:8080" autoComplete="off" />
                 </FormControl>
@@ -135,13 +151,16 @@ export const MCPServerForm = (props: MCPServerFormProps) => {
             name="config.headers"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>headers</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  headers
+                  <Hint text="필요한 경우 인증/커스텀 헤더를 JSON 형태로 입력하세요." />
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
                     placeholder="{
-    'X-Internal-Token': '******'
-  }"
+  'X-Internal-Token': '******'
+}"
                     autoComplete="off"
                   />
                 </FormControl>

@@ -8,8 +8,8 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
-import { Info, Upload, X } from "lucide-react";
+import { Hint } from "@/shared/ui/hint";
+import { Upload, X } from "lucide-react";
 
 import {
   useCreateDocument,
@@ -22,19 +22,6 @@ type UploadDocumentModalProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   collectionId: string;
-};
-
-const Hint = ({ text }: { text: string }) => {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-muted-foreground inline-flex cursor-help items-center">
-          <Info className="h-3.5 w-3.5" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top">{text}</TooltipContent>
-    </Tooltip>
-  );
 };
 
 export const UploadDocumentModal = ({
