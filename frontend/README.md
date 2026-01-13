@@ -1,63 +1,55 @@
-# BD 챗봇
+# BD 챗봇 프런트엔드
 
-## 목차
+React + Vite 기반의 클라이언트 애플리케이션입니다. 상태 관리와 서버 상태 동기화를 위해 Zustand, TanStack Query(Ky)를 사용하며 UI는 shadcn/ui(Tailwind v4)로 구성됩니다.
 
-- [1. 설명](#설명)
-- [2. 설치](#설치)
-- [3. 실행](#실행)
+## 1. 주요 스택 및 구조
 
-## 설명
+- React, Vite
+- TanStack Query + Ky(HTTP)
+- Zustand
+- shadcn/ui + Tailwind CSS v4
+- 구조: FSD(Feature Sliced Design)
+  - `src/app/`, `src/pages/`, `src/widgets/`, `src/features/`, `src/entities/`, `src/shared/`
 
-- 주요 라이브러리
-  - react
-  - tanstack query (+ ky)
-  - zustand
-  - shadcn/ui (+ tailwind v4)
+## 2. 설치
 
-- 디렉터리 구조 : FSD (Feature Sliced Design) 구조로 설계되어 있습니다.
-  - src/
-    - app/
-    - pages/
-    - widgets/
-    - features/
-    - entities/
-    - shared/
-
-## 설치
-
-- 프로젝트 세팅에 맞는 패키지 매니저를 사용합니다 (e.g. npm, pnpm, yarn ...)
+선호하는 패키지 매니저를 사용하세요.
 
 ```bash
-npm install
-# or
 pnpm install
-# or
+# 또는
+npm install
 yarn install
 ```
 
-## 실행
+## 3. 개발 서버 실행
 
 ```bash
-npm run dev
 pnpm run dev
+# 또는
+npm run dev
 yarn dev
 ```
 
-## 환경 변수
+## 4. 환경변수
 
-- 프론트에서 백엔드 API 엔드포인트를 변경하려면 `frontend/.env` 파일을 만들고 아래 값을 설정하세요:
+API 베이스 URL 설정 예시(`frontend/.env`):
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-이 값을 변경하면 `frontend/src/shared/api/ky-client.ts`에서 사용하는 기본 API 베이스 URL이 변경됩니다.
+값을 변경하면 `src/shared/api/ky-client.ts`에서 사용하는 기본 API URL이 함께 바뀝니다.
 
-## Docker
+## 5. Docker 실행
 
-프론트는 도커로도 실행할 수 있습니다. 루트 `docker-compose.yml`을 사용하면 개발용 백엔드와 함께 프론트를 실행할 수 있습니다.
+루트의 `docker-compose.yml`을 사용하면 프런트엔드가 Nginx(80 포트)로 함께 기동됩니다.
 
 ```powershell
 docker compose up --build
 ```
 
+## 6. 추가 문서
+
+- 전체 프로젝트 개요: `../README.md`
+- 백엔드 설정: `../backend/README.md`
