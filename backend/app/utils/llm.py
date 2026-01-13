@@ -21,10 +21,22 @@ def get_chat_model(
     model_name: str, model_api_key: ModelApiKeyLike, **kwargs: Any
 ) -> BaseChatModel:
     """
-    엔드포인트 기반 ChatModel 생성. (자체 서빙 X)
-    - model_name: 공급자 모델/배포명 (OpenAI: "gpt-4o-mini", Azure: 배포명)
-    - model_api_key: 미리 로드된 ModelApiKey (관계 .provider.code 접근 가능해야 함)
-    - kwargs: temperature / timeout 등 모델 공통 옵션
+    Summary: 제공자별 ChatModel 클라이언트를 생성합니다.
+
+    Contract:
+        - provider.code와 purpose.code="chat"이 필요합니다.
+        - OpenAI/Azure OpenAI만 지원합니다.
+
+    Args:
+        model_name: 모델명 또는 배포명.
+        model_api_key: 제공자/키/엔드포인트 정보를 가진 객체.
+        **kwargs: temperature/timeout 등 공통 옵션.
+
+    Returns:
+        BaseChatModel: LangChain ChatModel 인스턴스.
+
+    Raises:
+        ValueError: 필수 정보 누락 또는 미지원 제공자.
     """
     provider = getattr(model_api_key.provider, "code", None)
     if not provider:

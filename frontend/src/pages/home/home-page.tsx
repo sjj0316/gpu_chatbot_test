@@ -1,5 +1,8 @@
 ﻿import { HomeFeatureCards, HomeUsageCards } from "@/widgets/home";
 
+/**
+ * Why: 제품의 핵심 가치와 사용 가이드를 한 화면에서 안내합니다.
+ */
 export const HomePage = () => {
   return (
     <div className="container mx-auto p-6">

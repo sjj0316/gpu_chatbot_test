@@ -6,6 +6,12 @@ export type StreamEvent = {
   data: unknown;
 };
 
+/**
+ * Why: SSE 프레임을 이벤트 단위로 분리합니다.
+ *
+ * Contract:
+ * - 프레임 구분자는 빈 줄(\\n\\n)입니다.
+ */
 const splitSSEFrames = (buffer: string): { frames: string[]; rest: string } => {
   const SEP = /\r?\n\r?\n/;
   const frames: string[] = [];
@@ -35,6 +41,15 @@ const normalizeTokenEvent = (evtName: string | null, raw: unknown) => {
   } satisfies StreamEvent;
 };
 
+/**
+ * Why: 스트리밍 채팅을 실행하고 이벤트를 콜백으로 전달합니다.
+ *
+ * Contract:
+ * - payload는 요청 스키마로 검증됩니다.
+ * - onEvent는 SSE 이벤트를 순차적으로 수신합니다.
+ *
+ * @returns void
+ */
 export async function streamChat(opts: {
   conversationId: number;
   payload: ChatRequest;

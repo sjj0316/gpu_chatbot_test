@@ -1,6 +1,15 @@
 import { kyClient } from "@/shared/api/ky-client";
 import { type DocumentUploadRequest, documentUploadResponseSchema } from "../model";
 
+/**
+ * Why: 파일을 업로드해 컬렉션에 문서를 생성합니다.
+ *
+ * Contract:
+ * - FormData로 전송하며 Content-Type은 브라우저가 설정합니다.
+ * - 응답은 업로드 결과 스키마로 파싱됩니다.
+ *
+ * @returns 업로드 결과.
+ */
 export const createDocument = async (collectionId: string, data: DocumentUploadRequest) => {
   const formData = new FormData();
 
@@ -30,5 +39,5 @@ export const createDocument = async (collectionId: string, data: DocumentUploadR
     })
     .json();
 
-  return response;
+  return documentUploadResponseSchema.parse(response);
 };

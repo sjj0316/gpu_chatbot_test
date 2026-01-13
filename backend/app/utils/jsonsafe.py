@@ -6,6 +6,20 @@ import re
 
 
 def to_jsonable(obj: Any, *, max_str_len: int | None = None) -> Any:
+    """
+    Summary: 다양한 객체를 JSON 직렬화 가능한 구조로 변환합니다.
+
+    Contract:
+        - 길이 제한이 있으면 문자열/바이너리를 잘라냅니다.
+        - 지원되지 않는 타입은 repr로 폴백합니다.
+
+    Args:
+        obj: 변환 대상 객체.
+        max_str_len: 문자열 최대 길이(옵션).
+
+    Returns:
+        Any: JSON 직렬화 가능한 값.
+    """
     if obj is None or isinstance(obj, (bool, int, float)):
         return obj
 
@@ -72,7 +86,19 @@ def to_jsonable(obj: Any, *, max_str_len: int | None = None) -> Any:
 
 
 def parse_jsonish(v: Any) -> Any:
-    """dict/list면 그대로, 문자열이면 JSON 시도 → 실패 시 content='...' 패턴 추출 → 원문 반환"""
+    """
+    Summary: 문자열 형태의 JSON 또는 유사 로그를 안전하게 파싱합니다.
+
+    Contract:
+        - dict/list는 그대로 반환합니다.
+        - 문자열은 JSON 파싱 시도 후 실패 시 패턴 기반으로 추출합니다.
+
+    Args:
+        v: 입력 값.
+
+    Returns:
+        Any: 파싱된 객체 또는 원문/표현 문자열.
+    """
     if v is None:
         return None
     if isinstance(v, (dict, list)):

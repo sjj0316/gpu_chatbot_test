@@ -6,6 +6,12 @@ type HintProps = {
   text: string;
 };
 
+/**
+ * Why: 입력 필드 옆에서 간단한 도움말을 제공하는 아이콘형 툴팁입니다.
+ *
+ * Props:
+ * - text: 표시할 툴팁 문구.
+ */
 export const Hint = ({ text }: HintProps) => {
   return (
     <Tooltip>

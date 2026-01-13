@@ -6,6 +6,15 @@ type UseStreamChatOptions = {
   onEvent?: (e: StreamEvent) => void;
 };
 
+/**
+ * Why: 스트리밍 채팅을 시작/중지하고 상태를 관리합니다.
+ *
+ * Contract:
+ * - 스트리밍 중 재호출은 무시합니다.
+ * - stop 호출 시 AbortController로 스트림을 중단합니다.
+ *
+ * @returns 스트리밍 제어/상태 객체.
+ */
 export function useStreamChat(conversationId: number, options?: UseStreamChatOptions) {
   const { onEvent } = options ?? {};
   const abortRef = useRef<AbortController | null>(null);

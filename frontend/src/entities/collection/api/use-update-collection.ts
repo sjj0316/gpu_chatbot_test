@@ -5,6 +5,14 @@ import { collectionQueries } from "./collection.queries";
 import { updateCollection } from "./update-collection";
 import { type CreateCollectionRequest } from "../model";
 
+/**
+ * Why: 컬렉션 수정 mutation을 제공해 캐시를 갱신합니다.
+ *
+ * Contract:
+ * - 성공 시 상세/목록 쿼리를 무효화합니다.
+ *
+ * @returns React Query mutation 객체.
+ */
 export const useUpdateCollection = () => {
   const queryClient = useQueryClient();
 

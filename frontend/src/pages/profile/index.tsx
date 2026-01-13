@@ -1,5 +1,8 @@
-import { ProfileForm, ChangePasswordForm } from "@/features/auth";
+﻿import { ProfileForm, ChangePasswordForm } from "@/features/auth";
 
+/**
+ * Why: 프로필 편집과 비밀번호 변경을 한 화면에서 제공합니다.
+ */
 export const ProfilePage = () => {
   return (
     <div className="container mx-auto max-w-2xl space-y-6 p-6">

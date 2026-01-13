@@ -1,8 +1,11 @@
-import { ErrorCard } from "@/shared/ui/error-card";
+﻿import { ErrorCard } from "@/shared/ui/error-card";
 import { Button } from "@/shared/ui/button";
 import { Home } from "lucide-react";
 import { Link } from "react-router";
 
+/**
+ * Why: 존재하지 않는 경로 접근 시 사용자에게 복귀 경로를 제공합니다.
+ */
 export const NotFoundPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center">

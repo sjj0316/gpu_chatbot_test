@@ -23,6 +23,18 @@ _HANGUL_RE = re.compile(r"[\u3130-\u318F\uAC00-\uD7A3]")
 
 
 def _choose_fts(detail: str) -> tuple[str, str]:
+    """
+    Why: 입력 언어 특성에 맞는 FTS 구성/컬럼을 선택합니다.
+
+    Contract:
+        - 한글이 포함되면 simple, ASCII만이면 english를 우선 사용합니다.
+
+    Args:
+        detail: 검색어 문자열.
+
+    Returns:
+        tuple[str, str]: (tsconfig, 사용할 tsvector 컬럼명).
+    """
     if not detail or _HANGUL_RE.search(detail):
         return ("simple", "content_tsv_simple")
     if _ASCII_RE.match(detail):
@@ -32,19 +44,53 @@ def _choose_fts(detail: str) -> tuple[str, str]:
 
 class DocumentService:
     def __init__(self, db: AsyncSession, collection_id: UUID, user: User):
+        """
+        Why: 컬렉션 단위 문서 작업에 필요한 컨텍스트를 고정합니다.
+
+        Args:
+            db: 비동기 DB 세션.
+            collection_id: 대상 컬렉션 ID.
+            user: 요청 사용자.
+        """
         self.db = db
         self.collection_id = collection_id
         self.user = user
         self.embedding = None
 
     async def _get_collection(self) -> Collection:
-        """컬렉션 조회 후 없으면 raise"""
+        """
+        Summary: 접근 가능한 컬렉션을 조회합니다.
+
+        Contract:
+            - 권한이 없거나 없으면 서비스 레이어에서 예외가 발생합니다.
+
+        Returns:
+            Collection: 컬렉션 ORM 엔티티.
+
+        Side Effects:
+            - DB 조회
+        """
         collection = await CollectionService(self.db).get_orm_model(
             self.collection_id, self.user
         )
         return collection
 
     async def _reslove_model_api_key(self, model_api_key_id: int) -> ModelApiKey | None:
+        """
+        Summary: ID로 모델 API 키를 조회하고 접근 권한을 검증합니다.
+
+        Args:
+            model_api_key_id: 모델 API 키 ID.
+
+        Returns:
+            ModelApiKey | None: 키 엔티티.
+
+        Raises:
+            HTTPException: 키 미존재/권한 없음.
+
+        Side Effects:
+            - DB 조회
+        """
         model_api_key = await ModelApiKeyService(self.db).get(model_api_key_id)
         if not model_api_key:
             raise HTTPException(
@@ -66,6 +112,21 @@ class DocumentService:
         return model_api_key
 
     async def _auto_matched_api_key(self, collection: Collection) -> ModelApiKey | None:
+        """
+        Summary: 컬렉션 임베딩 설정에 맞는 키를 자동 탐색합니다.
+
+        Args:
+            collection: 컬렉션 ORM 엔티티.
+
+        Returns:
+            ModelApiKey | None: 키 엔티티.
+
+        Raises:
+            HTTPException: 키 미존재/권한 없음.
+
+        Side Effects:
+            - DB 조회
+        """
         m = collection.embedding.model
         p = collection.embedding.provider_id
         model_api_key = await ModelApiKeyService(self.db).get_by_search(m, p)
@@ -91,7 +152,27 @@ class DocumentService:
     async def upsert(
         self, documents: list[Document], model_api_key: ModelApiKey
     ) -> list[str]:
-        """컬렉션에 문서를 추가합니다"""
+        """
+        Summary: 문서를 벡터스토어에 추가하고 생성된 ID를 반환합니다.
+
+        Contract:
+            - 임베딩 생성 실패 시 400을 반환합니다.
+            - 벡터스토어 장애는 error_id와 함께 500으로 래핑합니다.
+
+        Args:
+            documents: LangChain Document 목록.
+            model_api_key: 임베딩에 사용할 API 키.
+
+        Returns:
+            list[str]: 추가된 문서/청크 ID 목록.
+
+        Raises:
+            HTTPException: 임베딩/벡터스토어 처리 실패.
+
+        Side Effects:
+            - 외부 임베딩 API 호출
+            - 벡터스토어 저장
+        """
         collection = await self._get_collection()
         try:
             embed = get_embedding(
@@ -125,6 +206,31 @@ class DocumentService:
         chunk_overlap: int = 200,
         model_api_key_id: int = 1,
     ) -> DocumentUploadResponse:
+        """
+        Summary: 파일을 청크로 분해해 임베딩 후 벡터스토어에 저장합니다.
+
+        Contract:
+            - 메타데이터 수와 파일 수가 일치해야 합니다.
+            - 컬렉션 임베딩 설정과 API 키 모델이 일치해야 합니다.
+
+        Args:
+            files: 업로드 파일 목록.
+            metadatas: 파일별 메타데이터 목록.
+            chunk_size: 청크 크기.
+            chunk_overlap: 청크 겹침 크기.
+            model_api_key_id: 사용할 모델 API 키 ID.
+
+        Returns:
+            DocumentUploadResponse: 업로드 결과 요약.
+
+        Raises:
+            HTTPException: 파일 처리 실패, 모델 불일치, 벡터 저장 실패.
+
+        Side Effects:
+            - 파일 파싱/청킹
+            - 임베딩 생성
+            - 벡터스토어 저장
+        """
         docs_to_index: list[Document] = []
         processed_files_count = 0
         failed_files: list[str] = []
@@ -185,6 +291,24 @@ class DocumentService:
         offset: int = 0,
         view: Literal["chunk", "document"] = "document",
     ) -> dict:
+        """
+        Summary: 컬렉션 문서를 문서/청크 단위로 조회합니다.
+
+        Contract:
+            - view에 따라 응답 구조가 달라집니다.
+            - raw SQL로 벡터 테이블을 직접 조회합니다.
+
+        Args:
+            limit: 페이지 크기.
+            offset: 페이지 시작 위치.
+            view: "document" 또는 "chunk".
+
+        Returns:
+            dict: 목록과 카운트 정보를 포함한 응답.
+
+        Side Effects:
+            - DB 조회(raw SQL)
+        """
         collection = await self._get_collection()
         table = collection.table_name
         count_row = await raw_sql(
@@ -300,6 +424,23 @@ class DocumentService:
         file_ids: list[UUID] | None = None,
         document_ids: list[UUID] | None = None,
     ) -> int:
+        """
+        Summary: 조건에 따라 컬렉션 문서를 일괄 삭제합니다.
+
+        Contract:
+            - file_ids/document_ids가 없으면 전체 삭제합니다.
+
+        Args:
+            file_ids: 삭제할 파일 ID 목록.
+            document_ids: 삭제할 문서 ID 목록.
+
+        Returns:
+            int: 삭제된 행 수.
+
+        Side Effects:
+            - DB 삭제(raw SQL)
+            - 벡터스토어 데이터 삭제
+        """
         collection = await self._get_collection()
 
         if file_ids:
@@ -333,6 +474,23 @@ class DocumentService:
         target_id: UUID,
         delete_by: Literal["document_id", "file_id"] = "file_id",
     ) -> int:
+        """
+        Summary: 단일 문서를 식별자 기준으로 삭제합니다.
+
+        Args:
+            target_id: 삭제 대상 ID.
+            delete_by: "document_id" 또는 "file_id".
+
+        Returns:
+            int: 삭제된 행 수.
+
+        Raises:
+            ValueError: delete_by 값이 허용되지 않은 경우.
+
+        Side Effects:
+            - DB 삭제(raw SQL)
+            - 벡터스토어 데이터 삭제
+        """
         collection = await self._get_collection()
 
         if delete_by == "document_id":
@@ -364,6 +522,31 @@ class DocumentService:
         filter: dict[str, Any] | None = None,
         model_api_key_id: int = 1,
     ) -> list[dict[str, Any]]:
+        """
+        Summary: 키워드/시맨틱/하이브리드 방식으로 문서를 검색합니다.
+
+        Contract:
+            - search_type은 semantic/keyword/hybrid 중 하나여야 합니다.
+            - 임베딩 모델 불일치 시 자동 매칭 키로 대체합니다.
+
+        Args:
+            query: 검색어.
+            limit: 반환 개수.
+            search_type: 검색 방식.
+            filter: 메타데이터 필터(JSONB).
+            model_api_key_id: 사용할 모델 API 키 ID.
+
+        Returns:
+            list[dict[str, Any]]: 검색 결과 목록.
+
+        Raises:
+            HTTPException: 잘못된 검색 타입 또는 벡터스토어 오류.
+
+        Side Effects:
+            - DB 조회(raw SQL)
+            - 외부 임베딩 API 호출
+            - 벡터스토어 검색
+        """
         if search_type not in {"semantic", "keyword", "hybrid"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

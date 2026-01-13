@@ -23,7 +23,15 @@ _FACTORIES: dict[str, Factory] = {}
 
 
 def register_factory(provider_code: str):
-    """provider_code → 팩토리 함수 매핑"""
+    """
+    Why: provider_code별 임베딩 팩토리를 등록하는 데코레이터를 제공합니다.
+
+    Args:
+        provider_code: 제공자 코드.
+
+    Returns:
+        Callable: 팩토리 등록 데코레이터.
+    """
 
     def deco(fn: Factory) -> Factory:
         _FACTORIES[provider_code.lower()] = fn
@@ -34,6 +42,12 @@ def register_factory(provider_code: str):
 
 @register_factory("openai")
 def _build_openai(model_name: str, key: ModelApiKeyLike) -> Embeddings:
+    """
+    Why: OpenAI 임베딩 클라이언트를 생성합니다.
+
+    Raises:
+        ValueError: api_key가 없을 때.
+    """
     from langchain_openai import OpenAIEmbeddings
 
     if not key.api_key:
@@ -46,6 +60,12 @@ def _build_openai(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 
 @register_factory("azure_openai")
 def _build_azure_openai(model_name: str, key: ModelApiKeyLike) -> Embeddings:
+    """
+    Why: Azure OpenAI 임베딩 클라이언트를 생성합니다.
+
+    Raises:
+        ValueError: api_key/endpoint/api_version 누락.
+    """
     from langchain_openai import AzureOpenAIEmbeddings
 
     if not key.api_key:
@@ -65,8 +85,11 @@ def _build_azure_openai(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 @register_factory("huggingface")
 def _build_huggingface(model_name: str, key: ModelApiKeyLike) -> Embeddings:
     """
-    - 로컬 sentence-transformers 우선 (api_key 없어도 됨)
-    - 미설치/실패 시 HF Inference API로 폴백 (api_key 필요)
+    Summary: HuggingFace 임베딩 클라이언트를 생성합니다.
+
+    Contract:
+        - 로컬 sentence-transformers 우선(키 없이 가능).
+        - 실패 시 HF Inference API로 폴백(키 필요).
     """
     try:
         from langchain_huggingface import HuggingFaceEmbeddings
@@ -85,6 +108,12 @@ def _build_huggingface(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 
 @register_factory("cohere")
 def _build_cohere(model_name: str, key: ModelApiKeyLike) -> Embeddings:
+    """
+    Why: Cohere 임베딩 클라이언트를 생성합니다.
+
+    Raises:
+        ValueError: api_key가 없을 때.
+    """
     from langchain_cohere import CohereEmbeddings
 
     if not key.api_key:
@@ -97,6 +126,12 @@ def _build_cohere(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 
 @register_factory("voyage")
 def _build_voyage(model_name: str, key: ModelApiKeyLike) -> Embeddings:
+    """
+    Why: Voyage 임베딩 클라이언트를 생성합니다.
+
+    Raises:
+        ValueError: api_key가 없을 때.
+    """
     from langchain_community.embeddings import VoyageEmbeddings
 
     if not key.api_key:
@@ -109,6 +144,12 @@ def _build_voyage(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 
 @register_factory("ollama")
 def _build_ollama(model_name: str, key: ModelApiKeyLike) -> Embeddings:
+    """
+    Why: 로컬 Ollama 임베딩 클라이언트를 생성합니다.
+
+    Contract:
+        - endpoint가 없으면 기본값을 사용합니다.
+    """
     from langchain_community.embeddings import OllamaEmbeddings
 
     return OllamaEmbeddings(
@@ -119,8 +160,20 @@ def _build_ollama(model_name: str, key: ModelApiKeyLike) -> Embeddings:
 
 def get_embedding(model_name: str, model_api_key: ModelApiKeyLike) -> Embeddings:
     """
-    DB 조회 없이, 주어진 model_name과 model_api_key(프로바이더/목적/키 정보)를 바탕으로
-    올바른 LangChain Embeddings 인스턴스를 반환합니다.
+    Summary: model_name과 모델 키 정보로 적절한 임베딩 클라이언트를 반환합니다.
+
+    Contract:
+        - model_api_key.provider.code와 purpose="embedding"이 필요합니다.
+
+    Args:
+        model_name: 임베딩 모델명.
+        model_api_key: 제공자/목적/키 정보를 가진 객체.
+
+    Returns:
+        Embeddings: LangChain 임베딩 클라이언트.
+
+    Raises:
+        ValueError: provider_code/purpose 불일치 또는 미지원 제공자.
     """
     if not getattr(model_api_key, "provider", None) or not getattr(
         model_api_key.provider, "code", None

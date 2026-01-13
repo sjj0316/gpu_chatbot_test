@@ -41,6 +41,15 @@ SYSTEM_PROMPT_BASE = """
 
 
 def _is_ai_message(msg) -> bool:
+    """
+    Why: 메시지가 AI 응답인지 판별해 스트리밍 토큰을 구분합니다.
+
+    Args:
+        msg: LangChain 메시지 객체.
+
+    Returns:
+        bool: AI/assistant 메시지 여부.
+    """
     t = getattr(msg, "type", None)  # 'ai' | 'tool' | 'human' | 'system' ...
     if t in ("ai", "assistant"):
         return True
@@ -53,6 +62,20 @@ def _is_ai_message(msg) -> bool:
 
 
 def _json_to_str(x: Any, *, max_len: int = 4000) -> str:
+    """
+    Why: 툴 출력/입력을 안전하게 문자열로 직렬화합니다.
+
+    Contract:
+        - JSON 직렬화 실패 시 str(x)로 폴백합니다.
+        - max_len 초과 시 잘라냅니다.
+
+    Args:
+        x: 직렬화 대상.
+        max_len: 최대 길이.
+
+    Returns:
+        str: 문자열 표현.
+    """
     if x is None:
         return ""
     if isinstance(x, str):
@@ -66,6 +89,17 @@ def _json_to_str(x: Any, *, max_len: int = 4000) -> str:
 
 
 def _mk_ai_toolcall_msg(name: str, call_id: str, args: Any) -> AIMessage:
+    """
+    Why: 툴 호출 시작 메시지를 AIMessage 형태로 생성합니다.
+
+    Args:
+        name: 툴 이름.
+        call_id: 호출 식별자.
+        args: 툴 입력 인자.
+
+    Returns:
+        AIMessage: 툴 호출 메시지.
+    """
     return AIMessage(
         content="",
         tool_calls=[
@@ -82,6 +116,20 @@ def _build_messages_from_histories(
     items: Sequence[ConversationHistory],
     system_prompt: str | None,
 ) -> list[BaseMessage]:
+    """
+    Summary: DB 히스토리를 LangChain 메시지 배열로 변환합니다.
+
+    Contract:
+        - role 코드에 따라 Human/AI/Tool/System 메시지를 생성합니다.
+        - tool_call_id가 있는 경우 tool start/end 메시지를 구성합니다.
+
+    Args:
+        items: 히스토리 엔티티 목록.
+        system_prompt: 시스템 프롬프트(옵션).
+
+    Returns:
+        list[BaseMessage]: LangChain 메시지 목록.
+    """
     msgs: list[BaseMessage] = []
     if system_prompt:
         msgs.append(SystemMessage(content=system_prompt))
@@ -119,10 +167,29 @@ def _build_messages_from_histories(
 
 class ChatService:
     def __init__(self, session: AsyncSession):
+        """
+        Why: 대화/히스토리 관련 작업에 사용할 DB 세션을 주입합니다.
+
+        Args:
+            session: 비동기 SQLAlchemy 세션.
+        """
         self.session = session
         self._role_id_cache: dict[str, int] = {}
 
     async def _role_id(self, code: str) -> int:
+        """
+        Summary: 역할 코드에 대한 ID를 조회하고 캐시합니다.
+
+        Args:
+            code: 역할 코드(user/assistant/tool/system).
+
+        Returns:
+            int: 역할 ID.
+
+        Side Effects:
+            - DB 조회
+            - 캐시 갱신
+        """
         if code in self._role_id_cache:
             return self._role_id_cache[code]
         res = await self.session.execute(
@@ -141,6 +208,23 @@ class ChatService:
         default_params: dict | None,
         mcp_server_ids: list[int] | None,
     ) -> Conversation:
+        """
+        Summary: 새 대화를 생성하고 MCP 서버 연결을 설정합니다.
+
+        Args:
+            user_id: 사용자 ID.
+            title: 대화 제목.
+            default_model_key_id: 기본 모델 키.
+            default_params: 기본 파라미터.
+            mcp_server_ids: 연결할 MCP 서버 ID 목록.
+
+        Returns:
+            Conversation: 생성된 대화 엔티티.
+
+        Side Effects:
+            - DB 레코드 생성
+            - 대화-서버 연관 설정
+        """
         q = Conversation(
             user_id=user_id,
             title=title,
@@ -158,6 +242,20 @@ class ChatService:
     async def list_conversations(
         self, *, user_id: int, limit: int = 20, offset: int = 0
     ) -> list[Conversation]:
+        """
+        Summary: 사용자의 대화 목록을 최신순으로 조회합니다.
+
+        Args:
+            user_id: 사용자 ID.
+            limit: 페이지 크기.
+            offset: 페이지 시작 위치.
+
+        Returns:
+            list[Conversation]: 대화 목록.
+
+        Side Effects:
+            - DB 조회
+        """
         res = await self.session.execute(
             select(Conversation)
             .where(Conversation.user_id == user_id)
@@ -170,6 +268,20 @@ class ChatService:
     async def get_histories(
         self, *, conversation_id: int, user_id: int, limit: int = 200
     ) -> list[ConversationHistory]:
+        """
+        Summary: 대화 히스토리를 시간순으로 조회합니다.
+
+        Args:
+            conversation_id: 대화 ID.
+            user_id: 사용자 ID.
+            limit: 최대 조회 개수.
+
+        Returns:
+            list[ConversationHistory]: 히스토리 목록.
+
+        Side Effects:
+            - DB 조회
+        """
         res = await self.session.execute(
             select(ConversationHistory)
             .join(Conversation, ConversationHistory.conversation_id == Conversation.id)
@@ -183,6 +295,16 @@ class ChatService:
         return list(res.scalars())
 
     async def delete_conversation(self, *, conversation_id: int, user_id: int) -> None:
+        """
+        Summary: 대화 엔티티를 삭제합니다.
+
+        Args:
+            conversation_id: 대화 ID.
+            user_id: 사용자 ID.
+
+        Side Effects:
+            - DB 레코드 삭제
+        """
         res = await self.session.execute(
             select(Conversation).where(
                 Conversation.id == conversation_id, Conversation.user_id == user_id
@@ -195,6 +317,22 @@ class ChatService:
     async def _get_conversation(
         self, *, conversation_id: int | None, user_id: int
     ) -> Conversation:
+        """
+        Summary: 대화를 조회하거나 없으면 새로 생성합니다.
+
+        Contract:
+            - conversation_id가 없으면 신규 대화를 생성합니다.
+
+        Args:
+            conversation_id: 대화 ID(옵션).
+            user_id: 사용자 ID.
+
+        Returns:
+            Conversation: 대화 엔티티.
+
+        Side Effects:
+            - DB 조회/생성
+        """
         if conversation_id:
             res = await self.session.execute(
                 select(Conversation)
@@ -220,6 +358,22 @@ class ChatService:
     async def _get_model_key(
         self, *, explicit_model_key_id: int | None, conversation: Conversation
     ) -> ModelApiKey:
+        """
+        Summary: 명시된 또는 대화 기본 모델 키를 조회합니다.
+
+        Args:
+            explicit_model_key_id: 명시적 모델 키 ID.
+            conversation: 대화 엔티티.
+
+        Returns:
+            ModelApiKey: 모델 키 엔티티(비밀값 포함).
+
+        Raises:
+            ValueError: 모델 키가 지정되지 않은 경우.
+
+        Side Effects:
+            - DB 조회
+        """
         target_id = explicit_model_key_id or conversation.default_model_key_id
         if not target_id:
             raise ValueError("model_key_id가 필요합니다.")
@@ -236,6 +390,18 @@ class ChatService:
         return res.scalar_one()
 
     async def _get_mcp_servers(self, ids: list[int]) -> list[MCPServer]:
+        """
+        Summary: MCP 서버 ID 목록을 조회합니다.
+
+        Args:
+            ids: MCP 서버 ID 목록.
+
+        Returns:
+            list[MCPServer]: MCP 서버 엔티티 목록.
+
+        Side Effects:
+            - DB 조회
+        """
         res = await self.session.execute(select(MCPServer).where(MCPServer.id.in_(ids)))
         return list(res.scalars())
 
@@ -250,6 +416,29 @@ class ChatService:
         system_prompt: str | None,
         mcp_server_ids: list[int] | None,
     ) -> tuple[int, int, str]:
+        """
+        Summary: 단일 요청/응답 방식으로 채팅을 수행합니다.
+
+        Contract:
+            - 모델 키가 없으면 ValueError를 발생시킵니다.
+            - 히스토리를 읽어 메시지 컨텍스트를 구성합니다.
+
+        Args:
+            user_id: 사용자 ID.
+            conversation_id: 대화 ID(없으면 생성).
+            message: 사용자 입력 메시지.
+            model_key_id: 사용할 모델 키 ID(옵션).
+            params: 모델 파라미터.
+            system_prompt: 시스템 프롬프트(옵션).
+            mcp_server_ids: MCP 서버 ID 목록(옵션).
+
+        Returns:
+            tuple[int, int, str]: (conversation_id, message_id, content).
+
+        Side Effects:
+            - DB 히스토리 저장
+            - 외부 LLM 호출
+        """
         conv = await self._get_conversation(
             conversation_id=conversation_id, user_id=user_id
         )
@@ -311,6 +500,29 @@ class ChatService:
         system_prompt: str | None,
         mcp_server_ids: list[int] | None,
     ) -> AsyncIterator[tuple[str, dict]]:
+        """
+        Summary: 스트리밍 방식으로 채팅 이벤트를 생성합니다.
+
+        Contract:
+            - SSE 이벤트 이름과 payload를 튜플로 yield합니다.
+            - tool 이벤트는 별도 히스토리로 저장합니다.
+
+        Args:
+            user_id: 사용자 ID.
+            conversation_id: 대화 ID(없으면 생성).
+            message: 사용자 입력 메시지.
+            model_key_id: 사용할 모델 키 ID(옵션).
+            params: 모델 파라미터.
+            system_prompt: 시스템 프롬프트(옵션).
+            mcp_server_ids: MCP 서버 ID 목록(옵션).
+
+        Yields:
+            tuple[str, dict]: (event_name, payload).
+
+        Side Effects:
+            - DB 히스토리 저장
+            - 외부 LLM 호출
+        """
         conv = await self._get_conversation(
             conversation_id=conversation_id, user_id=user_id
         )
@@ -356,10 +568,14 @@ class ChatService:
 
         async def consume_events():
             """
-            LangGraph 이벤트 스트림 구독.
-            - on_tool_start: 입력 로깅 + SSE
-            - on_tool_end: 출력/에러 로깅 + SSE
-            - (옵션) on_chat_model_stream 등 다른 이벤트도 필요 시 처리
+            Summary: LangGraph 이벤트를 구독해 툴 호출 상태를 큐로 전달합니다.
+
+            Contract:
+                - on_tool_start/on_tool_end만 처리합니다.
+
+            Side Effects:
+                - DB 히스토리 저장
+                - SSE 큐 적재
             """
             try:
                 async for ev in agent.astream_events(

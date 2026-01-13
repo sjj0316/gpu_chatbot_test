@@ -5,6 +5,14 @@ import { collectionQueries } from "./collection.queries";
 import { createCollection } from "./create-collection";
 import { type CreateCollectionRequest } from "../model";
 
+/**
+ * Why: 컬렉션 생성 mutation을 제공해 목록 캐시를 갱신합니다.
+ *
+ * Contract:
+ * - 성공 시 전체 컬렉션 목록을 무효화합니다.
+ *
+ * @returns React Query mutation 객체.
+ */
 export const useCreateCollection = () => {
   const queryClient = useQueryClient();
 

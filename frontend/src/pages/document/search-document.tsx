@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Search, Database } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
@@ -11,6 +11,12 @@ import { useCollections } from "@/entities/collection";
 import { useSearchDocument, SearchResultCard, type DocumentSearchType } from "@/entities/document";
 import { ModelKeySelect } from "@/entities/model-key";
 
+/**
+ * Why: 컬렉션 내 문서를 검색하고 결과를 요약해 보여줍니다.
+ *
+ * Contract:
+ * - 컬렉션 선택과 검색어 입력이 있어야 검색이 실행됩니다.
+ */
 export const DocumentSearchPage = () => {
   const [query, setQuery] = useState("");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>("");

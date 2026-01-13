@@ -17,6 +17,12 @@ type WikiPage = {
   updated_by: string | null;
 };
 
+/**
+ * Why: 제품 사용 가이드를 조회/편집할 수 있는 화면을 제공합니다.
+ *
+ * Contract:
+ * - 로그인 상태에서만 편집을 허용합니다.
+ */
 export const GuidePage = () => {
   const { isAuthenticated } = useAuthStore();
   const [page, setPage] = useState<WikiPage | null>(null);

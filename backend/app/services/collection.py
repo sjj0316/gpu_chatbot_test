@@ -22,11 +22,33 @@ logger = logging.getLogger(__name__)
 
 class CollectionService:
     def __init__(self, db: AsyncSession):
+        """
+        Why: 컬렉션 관련 작업에 사용할 DB 세션을 주입합니다.
+
+        Args:
+            db: 비동기 SQLAlchemy 세션.
+        """
         self.db = db
 
     async def _resolve_embedding_spec(
         self, model: str, provider_id: int
     ) -> EmbeddingSpec | None:
+        """
+        Summary: 모델/프로바이더에 맞는 임베딩 사양을 조회합니다.
+
+        Args:
+            model: 임베딩 모델명.
+            provider_id: 제공자 ID.
+
+        Returns:
+            EmbeddingSpec | None: 임베딩 사양 엔티티.
+
+        Raises:
+            HTTPException: 임베딩 사양이 없을 때.
+
+        Side Effects:
+            - DB 조회
+        """
         res = await self.db.execute(
             select(EmbeddingSpec).where(
                 EmbeddingSpec.model == model,
@@ -46,6 +68,22 @@ class CollectionService:
         model_api_key_id: int,
         user: User,
     ) -> ModelApiKey | None:
+        """
+        Summary: 모델 API 키를 조회하고 접근 권한을 검증합니다.
+
+        Args:
+            model_api_key_id: 모델 API 키 ID.
+            user: 요청 사용자.
+
+        Returns:
+            ModelApiKey | None: 키 엔티티.
+
+        Raises:
+            HTTPException: 키 미존재 또는 권한 없음.
+
+        Side Effects:
+            - DB 조회
+        """
         model_api_key = await ModelApiKeyService(self.db).get(model_api_key_id)
         if not model_api_key:
             raise HTTPException(
@@ -66,6 +104,22 @@ class CollectionService:
         return model_api_key
 
     async def get_orm_model(self, collection_id: UUID, user: User) -> Collection:
+        """
+        Summary: 권한 검증을 포함한 컬렉션 ORM 엔티티 조회.
+
+        Args:
+            collection_id: 컬렉션 ID.
+            user: 요청 사용자.
+
+        Returns:
+            Collection: 컬렉션 엔티티.
+
+        Raises:
+            HTTPException: 컬렉션 미존재 또는 접근 권한 없음.
+
+        Side Effects:
+            - DB 조회
+        """
         collection = await self.db.get(
             Collection, collection_id, options=(selectinload(Collection.embedding),)
         )
@@ -83,6 +137,26 @@ class CollectionService:
         user: User,
         data: CollectionCreate,
     ) -> CollectionRead:
+        """
+        Summary: 컬렉션을 생성하고 벡터스토어 테이블을 준비합니다.
+
+        Contract:
+            - 컬렉션 임베딩 모델은 모델 API 키와 일치해야 합니다.
+
+        Args:
+            user: 요청 사용자.
+            data: 컬렉션 생성 데이터.
+
+        Returns:
+            CollectionRead: 생성된 컬렉션 DTO.
+
+        Raises:
+            HTTPException: 임베딩/키 미존재, 생성 실패.
+
+        Side Effects:
+            - DB 컬렉션 레코드 생성
+            - 벡터스토어 테이블 생성
+        """
         api_key = await self._reslove_model_api_key(data.model_api_key_id, user=user)
         model_name = api_key.model
         provider_id = api_key.provider_id
@@ -128,6 +202,22 @@ class CollectionService:
         )
 
     async def get(self, collection_id: UUID, user: User) -> CollectionRead:
+        """
+        Summary: 컬렉션 상세 정보와 문서/청크 카운트를 반환합니다.
+
+        Args:
+            collection_id: 컬렉션 ID.
+            user: 요청 사용자.
+
+        Returns:
+            CollectionRead: 컬렉션 상세 DTO.
+
+        Raises:
+            HTTPException: 컬렉션 미존재 또는 접근 권한 없음.
+
+        Side Effects:
+            - DB 조회(raw SQL 포함)
+        """
         collection = await self.db.get(
             Collection, collection_id, options=(selectinload(Collection.embedding),)
         )
@@ -175,6 +265,23 @@ class CollectionService:
         limit: int = 20,
         offset: int = 0,
     ) -> PaginatedCollectionResponse:
+        """
+        Summary: 접근 가능한 컬렉션 목록을 페이지네이션으로 조회합니다.
+
+        Contract:
+            - 공개 컬렉션 또는 소유 컬렉션만 반환합니다.
+
+        Args:
+            user: 요청 사용자.
+            limit: 페이지 크기.
+            offset: 페이지 시작 위치.
+
+        Returns:
+            PaginatedCollectionResponse: 목록과 전체 개수.
+
+        Side Effects:
+            - DB 조회(raw SQL 포함)
+        """
         is_admin_check = is_admin(user)
         condition = or_(
             Collection.is_public.is_(True),
@@ -244,6 +351,23 @@ class CollectionService:
     async def update(
         self, collection_id: UUID, data: CollectionUpdate, user: User
     ) -> CollectionRead:
+        """
+        Summary: 컬렉션 메타데이터를 수정합니다.
+
+        Args:
+            collection_id: 컬렉션 ID.
+            data: 변경 요청 데이터.
+            user: 요청 사용자.
+
+        Returns:
+            CollectionRead: 수정된 컬렉션 DTO.
+
+        Raises:
+            HTTPException: 컬렉션 미존재 또는 권한 없음.
+
+        Side Effects:
+            - DB 컬렉션 레코드 업데이트
+        """
         collection = await self.db.get(Collection, collection_id)
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")
@@ -299,6 +423,20 @@ class CollectionService:
         )
 
     async def delete(self, collection_id: UUID, user: User) -> None:
+        """
+        Summary: 컬렉션과 벡터 테이블을 삭제합니다.
+
+        Args:
+            collection_id: 컬렉션 ID.
+            user: 요청 사용자.
+
+        Raises:
+            HTTPException: 컬렉션 미존재 또는 권한 없음.
+
+        Side Effects:
+            - 벡터 테이블 DROP
+            - DB 컬렉션 레코드 삭제
+        """
         collection = await self.db.get(Collection, collection_id)
         if not collection:
             raise HTTPException(status_code=404, detail="컬렉션을 찾을 수 없습니다.")

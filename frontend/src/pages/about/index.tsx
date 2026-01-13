@@ -1,3 +1,6 @@
+﻿/**
+ * Why: 서비스 개요와 목적을 간단히 소개합니다.
+ */
 export const AboutPage = () => {
   return (
     <div className="container mx-auto p-6">

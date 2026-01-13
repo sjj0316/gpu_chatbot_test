@@ -40,7 +40,25 @@ async def process_document(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
 ) -> list[Document]:
-    """업로드한 파일을 LangChain 문서로 가공합니다."""
+    """
+    Summary: 업로드 파일을 파싱하고 청크 단위 문서로 변환합니다.
+
+    Contract:
+        - 파일 MIME 타입을 추정하고 지원 파서로 처리합니다.
+        - 각 청크에 file_id/chunk_index/source 메타데이터를 추가합니다.
+
+    Args:
+        file: 업로드 파일.
+        metadata: 문서 메타데이터(옵션).
+        chunk_size: 청크 크기.
+        chunk_overlap: 청크 겹침 크기.
+
+    Returns:
+        list[Document]: 청크 문서 목록.
+
+    Side Effects:
+        - 파일 바이트 읽기
+    """
     file_id = uuid.uuid4()
     contents = await file.read()
 
