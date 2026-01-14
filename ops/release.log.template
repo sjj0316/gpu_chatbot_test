@@ -6,6 +6,36 @@
 # 2026-01-15 09:10 KST | TAG=2026.01.15 | SHA=def5678 | OP=BD | RESULT=FAIL | NOTE=backend unhealthy -> rollback to 2026.01.14
 
 ================================================================================
+SUCCESS RECORD (Minimum)
+================================================================================
+Time(KST): YYYY-MM-DD HH:mm
+Operator: <name/alias>
+Server: <hostname or internal IP>
+TAG: <TAG>
+Env file: .env.prod
+Quiet mode: Yes/No
+
+Preflight:
+- preflight_all.ps1: OK (Exit code 0)
+
+Compose:
+- docker compose --env-file .env.prod -f docker-compose.prod.yml config: OK
+- docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build: OK
+- docker compose --env-file .env.prod -f docker-compose.prod.yml ps: OK (all Up/Healthy)
+
+Smoke tests (record status):
+- GET /                     : <HTTP_CODE>  (expected 200)
+- GET /api/openapi.json     : <HTTP_CODE>  (expected 200)
+Optional (auth-required):
+- GET /api/v1/collections   : <HTTP_CODE>  (expected 200/401 depending on token)
+
+Notes (no secrets):
+- Image tags built: backend:<TAG>, frontend:<TAG>, db:<TAG or pinned>
+- Changes deployed summary (1 line): <what changed / why>
+- Next planned action: <none | monitor | proceed to next P0>
+================================================================================
+
+================================================================================
 FAILURE RECORD (Minimum)
 ================================================================================
 Time(KST): YYYY-MM-DD HH:mm
