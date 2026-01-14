@@ -251,6 +251,70 @@ if ($LASTEXITCODE -ne 0) { throw "compose config failed" }
 
 ---
 
+### 6.7 리허설 성공/실패 체크리스트
+
+* [ ] .env.prod 존재(커밋 금지) 및 필수 키 채움 완료
+* [ ] TAG 결정 및 기록 완료(예: YYYY.MM.DD 또는 short SHA)
+* [ ] docker compose --env-file .env.prod -f docker-compose.prod.yml config 성공
+* [ ] docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build 성공
+* [ ] docker compose --env-file .env.prod -f docker-compose.prod.yml ps에서 모든 서비스 Up/Healthy
+* [ ] preflight_all.ps1 성공(Exit code 0)
+* [ ] Smoke test: GET / 성공
+* [ ] Smoke test: GET /api/openapi.json 성공
+* [ ] (선택) logs --tail=200에서 오류 없음
+* [ ] release.log 기록 시작(템플릿 복사 후 1회 기록)
+* [ ] 실패 시 release.log에 “Minimum Failure Record” 형식으로 기록
+
+---
+
+### 6.8 실패 시 최소 기록(Minimum Failure Record)
+
+리허설/운영 배포가 실패하면, 아래 항목을 반드시 남긴다(민감값은 마스킹).
+
+1) 기본 메타
+
+* 시간(KST): YYYY-MM-DD HH:mm
+* 실행자: <name/alias>
+* 서버: <hostname/IP(내부망)>
+* TAG: <TAG>
+* 실행한 명령: <커맨드 1줄>
+  * Quiet 사용 여부: Yes/No
+  * 사용한 env 파일: .env.prod
+
+2) 실패 지점
+
+* 실패 단계: config | up | ps | preflight | smoke | healthcheck | rollback
+* Exit code: <숫자>
+* 사용자 관측 증상(1문장): <예: nginx는 Up, backend가 Unhealthy>
+
+3) 최소 로그/출력(필수 3종)
+
+* 컨테이너 상태:
+  * docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+* 실패 서비스 로그(최소 200줄):
+  * docker compose --env-file .env.prod -f docker-compose.prod.yml logs <service> --tail=200
+* 전체 로그(선택이지만 권장):
+  * docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200
+
+4) healthcheck 관련(해당 시 필수)
+
+* Unhealthy 서비스명: <service>
+* healthcheck 결과 요약:
+  * docker inspect --format='{{json .State.Health}}' <container>
+
+5) 환경/의존성(값 노출 금지)
+
+* env 키 누락 여부: OK/NG (키명만)
+* 이미지 빌드/태그 결과: OK/NG
+* DB 연결 여부(해당 시): OK/NG
+
+6) 조치/결론
+
+* 즉시 조치(있다면): <예: rollback 수행>
+* 다음 액션(1줄): <예: backend env 키 추가 후 재시도>
+
+---
+
 ## 7) Smoke Test 최소 체크리스트(운영 배포 직후 3~5분)
 
 ### 6.1 목적

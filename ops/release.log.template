@@ -4,3 +4,45 @@
 # Example:
 # 2026-01-14 11:30 KST | TAG=2026.01.14 | SHA=abc1234 | OP=BD | RESULT=SUCCESS | NOTE=smoke ok
 # 2026-01-15 09:10 KST | TAG=2026.01.15 | SHA=def5678 | OP=BD | RESULT=FAIL | NOTE=backend unhealthy -> rollback to 2026.01.14
+
+================================================================================
+FAILURE RECORD (Minimum)
+================================================================================
+Time(KST): YYYY-MM-DD HH:mm
+Operator: <name/alias>
+Server: <hostname or internal IP>
+TAG: <TAG>
+Env file: .env.prod
+Quiet mode: Yes/No
+
+Failed step: config | up | ps | preflight | smoke | healthcheck | rollback
+Exit code: <number>
+Symptom (1 line): <e.g., backend unhealthy; nginx ok>
+
+Commands executed (copy exact):
+- <command 1>
+- <command 2>
+
+Compose status (required):
+- docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+
+Logs (required, mask secrets):
+- docker compose --env-file .env.prod -f docker-compose.prod.yml logs <service> --tail=200
+Optional:
+- docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200
+
+Healthcheck (if unhealthy):
+- Container: <name>
+- docker inspect --format='{{json .State.Health}}' <container>
+
+Env/Dependencies (no values):
+- Missing env keys: OK/NG (list key names only if NG): <KEY1, KEY2>
+- Image tag present: OK/NG
+- DB connectivity: OK/NG
+
+Immediate action taken:
+- <none | rollback to TAG_PREV | restarted service X>
+
+Next action:
+- <single line next step>
+================================================================================
