@@ -127,7 +127,7 @@ chmod 600 .env.prod
 ### 4.1 배포 전 준비(Preflight 포함)
 
 1. 서버에 코드 반영(예: git pull 또는 배포 패키지 반영)
-2. <TAG> 결정(태그 표준은 아래 7절 참조)
+2. <TAG> 결정(태그 표준은 아래 8절 참조)
 3. preflight 실행(필수)
 4. build → up → health → smoke test 순서로 진행
 5. 배포 기록을 ops/release.log에 남긴다(필수)
@@ -168,7 +168,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml config
 
 3. 이미지 태그 규칙 확인
 
-* <TAG> 규칙이 문서(7절)와 일치하는지 확인
+* <TAG> 규칙이 문서(8절)와 일치하는지 확인
 * 배포 기록에 <TAG>를 남길 준비가 되었는지 확인
 
 ### 5.3 Preflight 실행 규칙(문서 고정 문구)
@@ -201,7 +201,57 @@ powershell -ExecutionPolicy Bypass -File scripts/preflight_env.ps1
 
 ---
 
-## 6) Smoke Test 최소 체크리스트(운영 배포 직후 3~5분)
+## 6) 운영 1회 리허설 런북(사내 서버 기준)
+
+### 6.1 목적
+
+운영 전 “1회 재현 가능한 성공”을 확보한다. (로컬/사내망 서버 모두 동일)
+
+### 6.2 준비(.env.prod + TAG)
+
+```powershell
+Copy-Item .env.sample .env.prod
+# .env.prod를 열어서 값 채우기
+notepad .env.prod
+```
+
+* 운영 값은 서버에서만 입력하고 커밋하지 않는다.
+* TAG는 배포 단위를 나타내며 backend/frontend/db에 동일하게 적용한다.
+
+### 6.3 리허설 커맨드 세트(운영 표준)
+
+```powershell
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+```
+
+### 6.4 Preflight 실행(권장)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/preflight_all.ps1
+```
+
+### 6.5 Smoke Test(필수)
+
+```powershell
+curl -fsS http://localhost/ | Out-Null
+curl -fsS http://localhost/api/openapi.json | Out-Null
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+```
+
+### 6.6 Quiet 모드(민감값 노출 최소화, 옵션)
+
+* stdout만 억제하고 실패는 감지한다.
+
+```powershell
+docker compose --env-file .env.sample -f docker-compose.prod.yml config | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "compose config failed" }
+```
+
+---
+
+## 7) Smoke Test 최소 체크리스트(운영 배포 직후 3~5분)
 
 ### 6.1 목적
 
@@ -256,7 +306,7 @@ docker compose -f docker-compose.prod.yml logs <service> --tail=200
 
 ---
 
-## 7) 이미지 태그 규칙(운영 표준) + 기록 위치 고정(release.log)
+## 8) 이미지 태그 규칙(운영 표준) + 기록 위치 고정(release.log)
 
 ### 7.1 태그 규칙(단일 배포 단위)
 
@@ -300,7 +350,7 @@ docker compose -f docker-compose.prod.yml logs <service> --tail=200
 
 ---
 
-## 8) 롤백 절차(최소 전략)
+## 9) 롤백 절차(최소 전략)
 
 1. ops/release.log에서 직전 성공 TAG(<TAG_PREV>) 확인
 2. compose가 참조하는 이미지 태그를 <TAG_PREV>로 맞춘 뒤 재기동
@@ -309,7 +359,7 @@ docker compose -f docker-compose.prod.yml logs <service> --tail=200
 
 ---
 
-## 9) P0-DEP-4 게이트(사내 CI 또는 대체 게이트)
+## 10) P0-DEP-4 게이트(사내 CI 또는 대체 게이트)
 
 * CI/CD가 없더라도 배포 품질을 강제해야 한다.
 * 기본 원칙: 배포는 preflight를 반드시 선행하며 실패 시 중단한다.
@@ -318,6 +368,6 @@ docker compose -f docker-compose.prod.yml logs <service> --tail=200
 
 ---
 
-## 10) 변경 이력
+## 11) 변경 이력
 
 * (작성자가 기록) 날짜 / 변경 요약 / 승인(있으면)
