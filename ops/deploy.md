@@ -136,14 +136,14 @@ chmod 600 .env.prod
 
 ```bash
 # 1) compose 유효성
-docker compose -f docker-compose.prod.yml config
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
 
 # 2) 기동(로컬 build)
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 
 # 3) 상태/로그
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs --tail=200
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200
 ```
 
 ---
@@ -159,7 +159,7 @@ docker compose -f docker-compose.prod.yml logs --tail=200
 1. compose config 유효성
 
 ```bash
-docker compose -f docker-compose.prod.yml config
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
 ```
 
 2. 필수 env 키 존재 여부(값 노출 금지)
@@ -175,6 +175,29 @@ docker compose -f docker-compose.prod.yml config
 
 * preflight 실패 시 배포 명령은 non-zero로 종료되어 up이 실행되지 않는다.
 * 포함 항목: compose config + 필수 env 키 존재 체크 + 태그 규칙 체크.
+
+### 5.4 검증 전용 config 체크(로컬/문서 검증용)
+
+```bash
+docker compose --env-file .env.sample -f docker-compose.prod.yml config
+```
+
+### 5.5 운영 리허설/실배포 경로(운영 표준)
+
+```bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+### 5.6 Windows PowerShell 기본 경로(권장)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/preflight_all.ps1
+powershell -ExecutionPolicy Bypass -File scripts/preflight_env.ps1
+```
+
+* bash가 없는 환경에서 scripts/preflight_env.sh 실행 실패는 정상이다.
+* Linux 서버/WSL 환경에서만 scripts/preflight_env.sh를 사용한다.
 
 ---
 

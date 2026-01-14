@@ -1,8 +1,10 @@
 ﻿services:
   db:
     image: pgvector/pgvector:pg16
-    env_file:
-      - .env.prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,8 +20,18 @@
       context: ./backend
       dockerfile: Dockerfile
     image: gpu_chatbot_test-backend:${TAG}
-    env_file:
-      - .env.prod
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      LANGCHAIN_ENDPOINT: ${LANGCHAIN_ENDPOINT}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE: ${ACCESS_TOKEN_EXPIRE}
+      REFRESH_TOKEN_EXPIRE: ${REFRESH_TOKEN_EXPIRE}
     depends_on:
       db:
         condition: service_healthy
