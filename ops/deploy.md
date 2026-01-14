@@ -7,8 +7,8 @@
 * [운영전제] 배포 흐름: 서버 로컬 Build(서버에서 이미지 빌드 후 compose up)
 * [운영전제] 운영 env 정책: .env.prod 단일 파일(서버 로컬에만 존재, 커밋 금지)
 * [운영전제] 프록시 경로: Nginx가 /api/ 를 backend로 프록시, smoke/health는 /api/openapi.json으로 확인
-* [레포근거] 하위 샘플 env 존재: backend/app/core/.env.sample
-* [레포근거] 루트 .env.sample은 현재 없음 → P0-DEP-3에서 루트 표준으로 승격 예정
+* [레포근거] 루트 .env.sample 존재(키 목록 표준)
+* [레포근거] 하위 샘플 env 존재: backend/app/core/.env.sample(개발 참고용)
 * [운영전제] 배포 기록은 ops/release.log 가 단일 소스(Source of Truth)
 
 > 본 문서는 로컬 개발 단계에서도 운영으로 넘어가기 위한 최소 표준(문서/절차/검증)을 고정한다.
@@ -24,7 +24,7 @@
 * ops/release.log (배포 기록 단일 소스, 커밋 금지)
 * ops/release.log.template (배포 기록 템플릿, 커밋 대상)
 * .env.prod (운영 실값, 서버에만 존재, 커밋 금지)
-* .env.sample (키 목록 표준, 값 없음, 커밋 가능, P0-DEP-3에서 루트로 생성/승격)
+* .env.sample (키 목록 표준, 값 없음, 커밋 가능)
 * scripts/preflight_env.* (필수 env 키 존재 검사 스크립트, 값 출력 금지)
 * (선택) Makefile (표준 배포 명령)
 
