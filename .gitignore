@@ -1,1 +1,9 @@
 .vscode/
+
+# ops runtime artifacts
+.env.prod
+ops/release.log
+
+# optional secrets conventions
+/secrets/
+*.key

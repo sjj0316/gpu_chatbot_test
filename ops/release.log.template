@@ -1,0 +1,6 @@
+﻿# ops/release.log.template
+# Copy this file to ops/release.log and record each deployment.
+# Fields: timestamp | TAG | SHA | OP | RESULT | NOTE
+# Example:
+# 2026-01-14 11:30 KST | TAG=2026.01.14 | SHA=abc1234 | OP=BD | RESULT=SUCCESS | NOTE=smoke ok
+# 2026-01-15 09:10 KST | TAG=2026.01.15 | SHA=def5678 | OP=BD | RESULT=FAIL | NOTE=backend unhealthy -> rollback to 2026.01.14
