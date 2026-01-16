@@ -4,9 +4,9 @@ React(프런트엔드) + FastAPI(백엔드) + PostgreSQL(pgvector) 기반의 챗
 
 ## 주요 스택
 
-- **Frontend:** React, Vite, TanStack Query, Ky, Zustand, shadcn/ui(Tailwind v4)
-- **Backend:** FastAPI, LangChain, LangGraph, Uvicorn, SQLAlchemy, Alembic
-- **Database:** PostgreSQL 16 + pgvector
+- **프론트엔드:** React, Vite, TanStack Query, Ky, Zustand, shadcn/ui(Tailwind v4)
+- **백엔드:** FastAPI, LangChain, LangGraph, Uvicorn, SQLAlchemy, Alembic
+- **데이터베이스:** PostgreSQL 16 + pgvector
 
 ## 1단계: Docker Compose로 빠른 실행(권장)
 
@@ -16,8 +16,8 @@ React(프런트엔드) + FastAPI(백엔드) + PostgreSQL(pgvector) 기반의 챗
 docker compose up --build
 ```
 
-- Backend: http://localhost:8000 (Swagger: `/docs`)
-- Frontend: http://localhost (기본 80 포트, Vite dev 서버는 http://localhost:5173)
+- 백엔드: http://localhost:8000 (Swagger: `/docs`)
+- 프론트엔드: http://localhost (기본 80 포트, Vite dev 서버는 http://localhost:5173)
 - DB: 호스트 `127.0.0.1`, 포트 `15432`로 노출
 
 ## 2단계: 데이터베이스 마이그레이션(Docker DB 기준)
@@ -105,3 +105,48 @@ pytest -q
 
 - 백엔드 상세: `backend/README.md`
 - 프런트엔드 상세: `frontend/README.md`
+
+## 운영 배포 패키지(사내망 Docker Compose)
+
+이 레포에는 사내망 서버에서 Docker Compose로 운영할 때 사용하는 **런북/템플릿**이 포함돼 있습니다.
+서버 로컬 Build와 `.env.prod` 주입을 전제로 하며, 아래 파일을 참고하세요.
+
+- `ops/deploy.md` (운영 런북: 리허설, 사전 점검(preflight), 스모크 테스트(smoke test), 롤백)
+- `docker-compose.prod.yml` (운영용 compose 골격)
+- `.env.sample` (키 목록 표준, 값 없음)
+- `ops/release.log.template` (성공/실패 기록 템플릿)
+- `scripts/preflight_all.ps1` (Windows preflight 진입점)
+
+운영 리허설 경로(서버에서 `.env.prod`를 채운 뒤):
+
+```powershell
+docker compose --env-file .env.prod -f docker-compose.prod.yml config
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+```
+
+## 프로젝트 구조(루트 기준)
+
+폴더
+- `backend` : FastAPI 백엔드
+- `frontend` : React 프론트엔드
+- `db` : 데이터베이스 관련 파일/리소스
+- `nginx` : Nginx 설정
+- `ops` : 운영 문서/템플릿
+- `scripts` : 운영 preflight 스크립트
+- `.vscode` : 에디터 설정
+
+파일
+- `docker-compose.yml` : 로컬/기본 compose
+- `docker-compose.prod.yml` : 운영 compose
+- `docker-compose.test.yml` : 테스트 compose
+- `docker-compose.yml.backup` : 이전 compose 백업
+- `.env` : 로컬 환경 변수(값 포함 가능, 커밋 금지)
+- `.env.sample` : 키 목록 표준(값 없음)
+- `.dockerignore` : Docker 빌드 제외 규칙
+- `.gitignore` : Git 제외 규칙
+- `.gitlab-ci.yml` : CI 설정 파일(사용 여부는 운영 정책에 따름)
+- `frontend-backend-mapping.md` : 프론트/백엔드 매핑 문서
+- `Makefile` : 운영/검증 명령 모음
+- `README.md` : 프로젝트 개요
+- `seed_ui_demo.sql` : UI 데모용 시드 SQL

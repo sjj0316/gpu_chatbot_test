@@ -10,7 +10,7 @@ from .conftest import async_client, auth_header, login
 @pytest.mark.asyncio
 async def test_authz_roles(async_client):
     resp = await async_client.get("/api/v1/collections/")
-    assert resp.status_code == 401
+    assert resp.status_code == 403
 
     username = f"user_{uuid.uuid4().hex[:8]}"
     await async_client.post(

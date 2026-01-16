@@ -15,6 +15,12 @@ class DummyEmbeddings:
     def embed_query(self, text):
         return [0.0] * 1536
 
+    async def aembed_documents(self, texts):
+        return self.embed_documents(texts)
+
+    async def aembed_query(self, text):
+        return self.embed_query(text)
+
 
 @pytest.mark.asyncio
 async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
@@ -37,8 +43,8 @@ async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
         "/api/v1/collections/",
         headers=headers,
         json={
-            "name": "통합 테스트 컬렉션",
-            "description": "통합 테스트",
+            "name": "integration-collection",
+            "description": "integration test",
             "is_public": False,
             "model_api_key_id": embedding_key["id"],
         },
@@ -57,12 +63,13 @@ async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
     search = await async_client.post(
         f"/api/v1/collections/{collection_id}/documents/search",
         headers=headers,
-        json={"query": "hello", "limit": 5, "search_type": "semantic"},
+        json={"query": "hello", "limit": 5, "search_type": "keyword"},
     )
     search.raise_for_status()
     assert len(search.json()) >= 1
 
-    deleted = await async_client.delete(
+    deleted = await async_client.request(
+        "DELETE",
         f"/api/v1/collections/{collection_id}/documents",
         headers=headers,
         json={},
