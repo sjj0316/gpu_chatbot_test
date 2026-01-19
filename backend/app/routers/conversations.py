@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 import json
 
 from fastapi import APIRouter, Query
@@ -235,14 +236,18 @@ async def get_histories(
         normals.append(
             (
                 a["first_id"],
-                HistoryItem(
-                    id=a["first_id"],
-                    role="tool",
-                    content=None,
-                    timestamp=(a["start_ts"] or a["end_ts"] or ""),
-                    input_tokens=None,
-                    output_tokens=None,
-                    cost=None,
+                    HistoryItem(
+                        id=a["first_id"],
+                        role="tool",
+                        content=None,
+                        timestamp=(
+                            a["start_ts"]
+                            or a["end_ts"]
+                            or datetime.now(timezone.utc).isoformat()
+                        ),
+                        input_tokens=None,
+                        output_tokens=None,
+                        cost=None,
                     latency_ms=a["latency_ms"],
                     tool_name=a["tool_name"],
                     tool_call_id=a["tool_call_id"],

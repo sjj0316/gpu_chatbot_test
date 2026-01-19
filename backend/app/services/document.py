@@ -100,7 +100,7 @@ class DocumentService:
             model_api_key.is_active
             and (
                 model_api_key.is_public
-                or model_api_key.owner_id == str(self.user.id)
+                or model_api_key.owner_id == self.user.id
                 or is_admin(self.user)
             )
         ):
@@ -138,7 +138,7 @@ class DocumentService:
             model_api_key.is_active
             and (
                 model_api_key.is_public
-                or model_api_key.owner_id == str(self.user.id)
+                or model_api_key.owner_id == self.user.id
                 or is_admin(self.user)
             )
         ):
