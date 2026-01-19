@@ -11,6 +11,7 @@ from .conftest import database_url
 
 @pytest.mark.asyncio
 async def test_migrations_and_extensions():
+    # alembic 마이그레이션을 최신 상태로 올린다.
     backend_root = Path(__file__).resolve().parents[2]
     subprocess.run(
         ["uv", "run", "alembic", "upgrade", "head"],
@@ -18,6 +19,7 @@ async def test_migrations_and_extensions():
         cwd=str(backend_root),
     )
 
+    # 확장 및 테이블 생성 여부를 DB에서 직접 확인한다.
     conn = await asyncpg.connect(database_url())
     try:
         ext_rows = await conn.fetch(

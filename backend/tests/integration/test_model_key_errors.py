@@ -7,6 +7,7 @@ from .conftest import async_client, auth_header, login
 
 @pytest.mark.asyncio
 async def test_model_key_invalid_provider(async_client):
+    # 관리자 로그인 후 존재하지 않는 provider_code로 키를 생성해 오류를 확인한다.
     admin_token = await login(async_client, "admin", "data123!")
     headers = auth_header(admin_token)
 

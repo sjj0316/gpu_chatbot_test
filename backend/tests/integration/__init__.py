@@ -1,1 +1,1 @@
-"""Integration test package marker."""
+"""통합 테스트 패키지 표시용."""

@@ -9,6 +9,7 @@ from .conftest import async_client, auth_header, login
 
 
 class DummyEmbeddings:
+    # 외부 임베딩 호출을 피하기 위한 더미 임베딩 구현.
     def embed_documents(self, texts):
         return [[0.0] * 1536 for _ in texts]
 
@@ -24,10 +25,12 @@ class DummyEmbeddings:
 
 @pytest.mark.asyncio
 async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
+    # 문서 임베딩 의존성을 더미로 대체해 통합 테스트를 안정화한다.
     monkeypatch.setattr(
         document_service, "get_embedding", lambda model_name, model_api_key: DummyEmbeddings()
     )
 
+    # 관리자 로그인 후 임베딩 키를 조회한다.
     admin_token = await login(async_client, "admin", "data123!")
     headers = auth_header(admin_token)
 
@@ -39,6 +42,7 @@ async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
     )
     assert embedding_key is not None
 
+    # 컬렉션 생성 → 문서 업로드 → 검색 → 삭제의 흐름을 검증한다.
     resp = await async_client.post(
         "/api/v1/collections/",
         headers=headers,
@@ -68,6 +72,7 @@ async def test_rag_flow(async_client, monkeypatch: pytest.MonkeyPatch):
     search.raise_for_status()
     assert len(search.json()) >= 1
 
+    # 문서/컬렉션을 정리해 다음 테스트에 영향을 주지 않도록 한다.
     deleted = await async_client.request(
         "DELETE",
         f"/api/v1/collections/{collection_id}/documents",

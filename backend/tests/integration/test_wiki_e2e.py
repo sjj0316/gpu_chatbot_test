@@ -7,6 +7,7 @@ from .conftest import async_client, auth_header, login
 
 @pytest.mark.asyncio
 async def test_wiki_crud(async_client):
+    # 관리자 권한으로 위키 페이지 업서트/조회 흐름을 검증한다.
     admin_token = await login(async_client, "admin", "data123!")
     headers = auth_header(admin_token)
 
