@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Literal
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 
@@ -36,6 +37,15 @@ class HistoryItem(BaseModel):
     error: str | None = None
 
 
+class RagRequest(BaseModel):
+    collection_id: UUID
+    query: str | None = None
+    limit: int | None = 10
+    model_api_key_id: int | None = 1
+    filter: dict[str, Any] | None = None
+    search_type: Literal["semantic", "keyword", "hybrid"] = "semantic"
+
+
 class ChatRequest(BaseModel):
     conversation_id: int | None = None
     message: str = Field(..., min_length=1)
@@ -43,6 +53,7 @@ class ChatRequest(BaseModel):
     params: dict[str, Any] | None = None
     system_prompt: str | None = None
     mcp_server_ids: list[int] | None = None
+    rag: RagRequest | None = None
 
 
 class ChatChunk(BaseModel):

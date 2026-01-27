@@ -4,7 +4,7 @@ import json
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import undefer, selectinload
+from sqlalchemy.orm import selectinload
 
 from langchain_core.messages import (
     BaseMessage,
@@ -24,8 +24,16 @@ from app.models import (
     MCPServer,
     ModelApiKey,
     MessageRoleLkp,
+    User,
 )
-from app.utils import get_chat_model, load_mcp_tools_from_servers, to_jsonable
+from app.schemas import RagRequest
+from app.services.document import DocumentService
+from app.utils import (
+    get_chat_model,
+    load_mcp_tools_from_servers,
+    to_jsonable,
+)
+from app.security import get_model_key_authorized, get_mcp_servers_authorized
 
 ROLE_CODE_USER = "user"
 ROLE_CODE_ASSISTANT = "assistant"
@@ -38,6 +46,8 @@ SYSTEM_PROMPT_BASE = """
 - MCP 서버에서 제공하는 도구와 프롬프트가 있다면 이를 참고하여 답변 품질을 높이세요.
 - 필요 시 단계별로 논리적으로 사고 과정을 설명해 주세요.
 """
+RAG_PROMPT_PREAMBLE = "Retrieved context (use only if relevant):"
+
 
 
 def _is_ai_message(msg) -> bool:
@@ -86,6 +96,79 @@ def _json_to_str(x: Any, *, max_len: int = 4000) -> str:
         except Exception:
             s = str(x)
     return s if not max_len or len(s) <= max_len else s[:max_len] + "…"
+
+
+
+
+
+def _trim_text(text: str, *, max_len: int = 2000) -> str:
+    text = text.strip()
+    if max_len and len(text) > max_len:
+        return text[:max_len] + "..."
+    return text
+
+
+def _format_rag_context(results: Sequence[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    for idx, item in enumerate(results, start=1):
+        metadata = item.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        source = metadata.get("source") or metadata.get("file_id") or ""
+        chunk = metadata.get("chunk_index")
+        score = item.get("score")
+        header_parts = [f"[{idx}]"]
+        if source:
+            header_parts.append(f"source={source}")
+        if chunk is not None:
+            header_parts.append(f"chunk={chunk}")
+        if score is not None:
+            try:
+                header_parts.append(f"score={float(score):.4f}")
+            except (TypeError, ValueError):
+                header_parts.append(f"score={score}")
+        header = " ".join(header_parts)
+        content = _trim_text(str(item.get("page_content") or ""))
+        if not content:
+            continue
+        lines.append(f"{header}\n{content}")
+    return "\n\n".join(lines)
+
+
+def _merge_system_prompt(base: str | None, extra: str | None) -> str | None:
+    if not extra:
+        return base
+    if base:
+        return f"{base}\n\n{extra}"
+    return extra
+
+
+async def _build_rag_prompt(
+    *,
+    session: AsyncSession,
+    user: User,
+    rag: RagRequest | None,
+    default_query: str,
+) -> str | None:
+    if not rag or not getattr(rag, "collection_id", None):
+        return None
+    query = (rag.query or default_query or "").strip()
+    if not query:
+        return None
+    service = DocumentService(session, rag.collection_id, user)
+    results = await service.search(
+        query=query,
+        limit=rag.limit or 10,
+        search_type=rag.search_type,
+        filter=rag.filter,
+        model_api_key_id=rag.model_api_key_id or 1,
+    )
+    if not results:
+        return None
+    context = _format_rag_context(results)
+    if not context:
+        return None
+    return f"{RAG_PROMPT_PREAMBLE}\n{context}"
 
 
 def _mk_ai_toolcall_msg(name: str, call_id: str, args: Any) -> AIMessage:
@@ -203,6 +286,7 @@ class ChatService:
         self,
         *,
         user_id: int,
+        user: User,
         title: str | None,
         default_model_key_id: int | None,
         default_params: dict | None,
@@ -234,7 +318,7 @@ class ChatService:
         self.session.add(q)
         await self.session.flush()
         if mcp_server_ids:
-            servers = await self._get_mcp_servers(mcp_server_ids)
+            servers = await self._get_mcp_servers(mcp_server_ids, user=user)
             q.mcp_servers.extend(servers)
         await self.session.flush()
         return q
@@ -356,7 +440,11 @@ class ChatService:
         return q
 
     async def _get_model_key(
-        self, *, explicit_model_key_id: int | None, conversation: Conversation
+        self,
+        *,
+        explicit_model_key_id: int | None,
+        conversation: Conversation,
+        user: User,
     ) -> ModelApiKey:
         """
         Summary: 명시된 또는 대화 기본 모델 키를 조회합니다.
@@ -378,18 +466,9 @@ class ChatService:
         if not target_id:
             raise ValueError("model_key_id가 필요합니다.")
 
-        res = await self.session.execute(
-            select(ModelApiKey)
-            .options(
-                undefer(ModelApiKey.api_key),
-                selectinload(ModelApiKey.provider),
-                selectinload(ModelApiKey.purpose),
-            )
-            .where(ModelApiKey.id == target_id)
-        )
-        return res.scalar_one()
+        return await get_model_key_authorized(self.session, target_id, user)
 
-    async def _get_mcp_servers(self, ids: list[int]) -> list[MCPServer]:
+    async def _get_mcp_servers(self, ids: list[int], *, user: User) -> list[MCPServer]:
         """
         Summary: MCP 서버 ID 목록을 조회합니다.
 
@@ -402,19 +481,20 @@ class ChatService:
         Side Effects:
             - DB 조회
         """
-        res = await self.session.execute(select(MCPServer).where(MCPServer.id.in_(ids)))
-        return list(res.scalars())
+        return await get_mcp_servers_authorized(self.session, ids, user)
 
     async def chat_invoke(
         self,
         *,
         user_id: int,
+        user: User,
         conversation_id: int | None,
         message: str,
         model_key_id: int | None,
         params: dict | None,
         system_prompt: str | None,
         mcp_server_ids: list[int] | None,
+        rag: RagRequest | None,
     ) -> tuple[int, int, str]:
         """
         Summary: 단일 요청/응답 방식으로 채팅을 수행합니다.
@@ -443,10 +523,10 @@ class ChatService:
             conversation_id=conversation_id, user_id=user_id
         )
         model_key = await self._get_model_key(
-            explicit_model_key_id=model_key_id, conversation=conv
+            explicit_model_key_id=model_key_id, conversation=conv, user=user
         )
         if mcp_server_ids:
-            servers = await self._get_mcp_servers(mcp_server_ids)
+            servers = await self._get_mcp_servers(mcp_server_ids, user=user)
         else:
             servers = conv.mcp_servers
         tools = await load_mcp_tools_from_servers(servers)
@@ -463,7 +543,14 @@ class ChatService:
             conversation_id=conv.id, user_id=user_id, limit=1000
         )
         _ = system_role_id, tool_role_id
-        msgs = self._build_messages_from_histories(histories, system_prompt)
+        rag_prompt = await _build_rag_prompt(
+            session=self.session,
+            user=user,
+            rag=rag,
+            default_query=message,
+        )
+        prompt = _merge_system_prompt(system_prompt, rag_prompt)
+        msgs = _build_messages_from_histories(histories, prompt)
         msgs.append(HumanMessage(content=message))
         self.session.add(
             ConversationHistory(
@@ -493,12 +580,14 @@ class ChatService:
         self,
         *,
         user_id: int,
+        user: User,
         conversation_id: int | None,
         message: str,
         model_key_id: int | None,
         params: dict | None,
         system_prompt: str | None,
         mcp_server_ids: list[int] | None,
+        rag: RagRequest | None,
     ) -> AsyncIterator[tuple[str, dict]]:
         """
         Summary: 스트리밍 방식으로 채팅 이벤트를 생성합니다.
@@ -528,7 +617,7 @@ class ChatService:
         )
         conv_id = conv.id
         model_key = await self._get_model_key(
-            explicit_model_key_id=model_key_id, conversation=conv
+            explicit_model_key_id=model_key_id, conversation=conv, user=user
         )
         provider_id = model_key.provider_id
         provider_code = model_key.provider.code
@@ -536,7 +625,7 @@ class ChatService:
         model_key_id_val = model_key.id
 
         if mcp_server_ids:
-            servers = await self._get_mcp_servers(mcp_server_ids)
+            servers = await self._get_mcp_servers(mcp_server_ids, user=user)
         else:
             servers = list(conv.mcp_servers)
 
@@ -548,7 +637,17 @@ class ChatService:
         histories = await self.get_histories(
             conversation_id=conv_id, user_id=user_id, limit=1000
         )
-        msgs = _build_messages_from_histories(histories, SYSTEM_PROMPT_BASE)
+        rag_prompt = await _build_rag_prompt(
+            session=self.session,
+            user=user,
+            rag=rag,
+            default_query=message,
+        )
+        base_prompt = (
+            system_prompt if system_prompt is not None else SYSTEM_PROMPT_BASE
+        )
+        prompt = _merge_system_prompt(base_prompt, rag_prompt)
+        msgs = _build_messages_from_histories(histories, prompt)
         msgs.append(HumanMessage(content=message))
 
         self.session.add(

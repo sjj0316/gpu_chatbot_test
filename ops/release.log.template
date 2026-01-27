@@ -30,7 +30,7 @@ Optional (auth-required):
 - GET /api/v1/collections   : <HTTP_CODE>  (expected 200/401 depending on token)
 
 Notes (no secrets):
-- Image tags built: backend:<TAG>, frontend:<TAG>, db:<TAG or pinned>
+- Image tags built: gpu_chatbot_test-backend:<TAG>, gpu_chatbot_test-frontend:<TAG>, db=pgvector/pgvector:pg16
 - Changes deployed summary (1 line): <what changed / why>
 - Next planned action: <none | monitor | proceed to next P0>
 ================================================================================

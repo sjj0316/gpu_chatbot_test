@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pytest
 from typing import AsyncGenerator
 
 import pytest
@@ -9,6 +10,9 @@ import asyncpg
 from httpx import AsyncClient, ASGITransport
 
 from app.main import app
+
+if os.getenv("RUN_INTEGRATION", "").lower() not in ("1", "true", "yes"):
+    pytest.skip("integration tests require DB; set RUN_INTEGRATION=1", allow_module_level=True)
 
 
 @pytest_asyncio.fixture(scope="session")

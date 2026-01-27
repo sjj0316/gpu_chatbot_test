@@ -55,11 +55,13 @@ uv sync
 3) 필수 환경변수 예시
 
 ```powershell
-$env:DB_HOST = "localhost"
-$env:DB_PORT = "5432"
-$env:DB_USER = "postgres"
-$env:DB_PASSWORD = "postgres"
-$env:DB_NAME = "appdb"
+$env:POSTGRES_HOST = "localhost"
+$env:POSTGRES_PORT = "5432"
+$env:POSTGRES_USER = "postgres"
+$env:POSTGRES_PASSWORD = "postgres"
+$env:POSTGRES_DB = "appdb"
+# 또는 DATABASE_URL로 일괄 설정
+$env:DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/appdb"
 ```
 
 4) 마이그레이션 적용
@@ -92,14 +94,14 @@ API 엔드포인트를 바꾸려면 `frontend/.env`에 `VITE_API_BASE_URL`을 �
 
 ```powershell
 cd backend
-pip install pytest httpx
+pip install pytest pytest-asyncio httpx
 pytest -q
 ```
 
 ## RAG/임베딩 주의
 
-- 문서 업로드/검색은 유효한 임베딩 API Key가 필요합니다.
-- 임베딩 키가 없으면 관련 엔드포인트가 HTTP 400(`api_key required`)을 반환합니다.
+- 문서 업로드/검색은 **model_api_keys에 등록된 임베딩 API Key**가 필요합니다.
+- 키가 비어 있으면 관련 엔드포인트가 HTTP 400을 반환합니다(예: `OpenAIEmbeddings: api_key가 필요합니다.`).
 
 ## 추가 문서
 
@@ -111,10 +113,8 @@ pytest -q
 이 레포에는 사내망 서버에서 Docker Compose로 운영할 때 사용하는 **런북/템플릿**이 포함돼 있습니다.
 서버 로컬 Build와 `.env.prod` 주입을 전제로 하며, 아래 파일을 참고하세요.
 
-- `ops/deploy.md` (운영 런북: 리허설, 사전 점검(preflight), 스모크 테스트(smoke test), 롤백)
 - `docker-compose.prod.yml` (운영용 compose 골격)
 - `.env.sample` (키 목록 표준, 값 없음)
-- `ops/release.log.template` (성공/실패 기록 템플릿)
 - `scripts/preflight_all.ps1` (Windows preflight 진입점)
 
 운영 리허설 경로(서버에서 `.env.prod`를 채운 뒤):
@@ -124,6 +124,11 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml config
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 ```
+
+### 테스트 계정
+
+id : admin
+pw : data123!
 
 ## 프로젝트 구조(루트 기준)
 
@@ -138,9 +143,13 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 
 파일
 - `docker-compose.yml` : 로컬/기본 compose
-- `docker-compose.prod.yml` : 운영 compose
-- `docker-compose.test.yml` : 테스트 compose
-- `docker-compose.yml.backup` : 이전 compose 백업
+
+    다음 파일의 경우 임의 생성
+    - `docker-compose.prod.yml` : 운영 compose
+    - `docker-compose.test.yml` : 테스트 compose
+    - `docker-compose.yml.backup` : 이전 compose 백업
+
+
 - `.env` : 로컬 환경 변수(값 포함 가능, 커밋 금지)
 - `.env.sample` : 키 목록 표준(값 없음)
 - `.dockerignore` : Docker 빌드 제외 규칙

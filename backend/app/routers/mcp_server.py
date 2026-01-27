@@ -54,7 +54,7 @@ async def create_mcp_server(
     try:
         return await service.create(body, user=user)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.get(

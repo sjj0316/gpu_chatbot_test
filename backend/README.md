@@ -30,11 +30,13 @@ uv sync
 3) 환경변수 예시(로컬 DB)
 
 ```powershell
-$env:DB_HOST = "localhost"
-$env:DB_PORT = "5432"
-$env:DB_USER = "postgres"
-$env:DB_PASSWORD = "postgres"
-$env:DB_NAME = "appdb"
+$env:POSTGRES_HOST = "localhost"
+$env:POSTGRES_PORT = "5432"
+$env:POSTGRES_USER = "postgres"
+$env:POSTGRES_PASSWORD = "postgres"
+$env:POSTGRES_DB = "appdb"
+# 또는 DATABASE_URL로 일괄 설정
+$env:DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/appdb"
 ```
 
 4) 마이그레이션 적용
@@ -54,14 +56,14 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ## 3. Docker Compose 개발 환경
 
 - 루트 `docker-compose.yml`을 사용하면 DB/백엔드/프런트가 함께 기동됩니다.
-- 백엔드 서비스는 `backend/Dockerfile`(기본 dev 설정)을 사용합니다.
+- 백엔드 서비스는 `backend/Dockerfile`(uv + 자동 마이그레이션, reload 없음)을 사용합니다.
 - 명령어: `docker compose up --build`
 
 ## 4. 테스트
 
 ```powershell
 # 가상환경 활성화 후
-pip install pytest httpx
+pip install pytest pytest-asyncio httpx
 pytest -q
 ```
 
@@ -87,6 +89,7 @@ backend/
 │  ├─ models/         # SQLAlchemy 모델
 │  ├─ routers/        # API 라우터
 │  ├─ schemas/        # Pydantic 스키마
+│  ├─ security/       # 보안/인가 로직
 │  ├─ services/       # 비즈니스 로직
 │  └─ utils/          # 유틸리티 함수
 ├─ alembic/           # 마이그레이션 스크립트

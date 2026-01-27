@@ -235,6 +235,45 @@ async def test_invoke_conversation(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.asyncio
+async def test_invoke_conversation_with_rag(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def __init__(self, session):
+            self.session = session
+
+        async def chat_invoke(self, **kwargs):
+            captured["rag"] = kwargs.get("rag")
+            return 1, 2, "ok"
+
+    monkeypatch.setattr(router_module, "ChatService", FakeService)
+
+    collection_id = "11111111-1111-1111-1111-111111111111"
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        resp = await ac.post(
+            "/api/v1/conversations/1/invoke",
+            json={
+                "message": "hi",
+                "rag": {
+                    "collection_id": collection_id,
+                    "query": "q",
+                    "limit": 3,
+                    "search_type": "keyword",
+                },
+            },
+        )
+
+    assert resp.status_code == 200
+    rag = captured["rag"]
+    assert rag is not None
+    assert str(rag.collection_id) == collection_id
+    assert rag.query == "q"
+    assert rag.limit == 3
+    assert rag.search_type == "keyword"
+
+
+@pytest.mark.asyncio
 async def test_stream_conversation(monkeypatch: pytest.MonkeyPatch):
     # 준비: 두 개 SSE 이벤트를 내보내는 가짜 스트림 생성기.
     async def fake_stream(**kwargs):

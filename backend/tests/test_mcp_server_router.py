@@ -93,6 +93,35 @@ async def test_create_mcp_server_allows_user(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.asyncio
+async def test_create_mcp_server_conflict(monkeypatch: pytest.MonkeyPatch):
+    # 준비: 서비스가 중복 에러를 ValueError로 반환.
+    class FakeService:
+        def __init__(self, session):
+            self.session = session
+
+        async def create(self, body, *, user):
+            raise ValueError("duplicate")
+
+    monkeypatch.setattr(router_module, "MCPServerService", FakeService)
+    _set_current_user(FakeUser(1, "user"))
+
+    # 실행: 중복 서버 생성 시도.
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        resp = await ac.post(
+            "/api/v1/mcp-servers",
+            json={
+                "name": "Demo MCP",
+                "description": "test",
+                "config": {"transport": "http", "url": "http://localhost:9000"},
+            },
+        )
+
+    # 검증: 409 응답.
+    assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_list_mcp_servers_uses_current_user(monkeypatch: pytest.MonkeyPatch):
     # 준비: 가짜 서비스가 목록 반환 및 user id 캡처.
     received: dict[str, int] = {}

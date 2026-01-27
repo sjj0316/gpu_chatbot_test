@@ -70,6 +70,7 @@ async def create_conversation(
     svc = ChatService(session)
     conv = await svc.create_conversation(
         user_id=current_user.id,
+        user=current_user,
         title=payload.title,
         default_model_key_id=payload.default_model_key_id,
         default_params=payload.default_params,
@@ -344,12 +345,14 @@ async def invoke(
     svc = ChatService(session)
     conv_id, msg_id, content = await svc.chat_invoke(
         user_id=current_user.id,
+        user=current_user,
         conversation_id=conversation_id,
         message=payload.message,
         model_key_id=payload.model_key_id,
         params=payload.params,
         system_prompt=payload.system_prompt,
         mcp_server_ids=payload.mcp_server_ids or None,
+        rag=payload.rag,
     )
     await session.commit()
     return ChatResponse(conversation_id=conv_id, message_id=msg_id, content=content)
@@ -406,12 +409,14 @@ async def stream(
             async with tx:
                 async for ev, data in svc.chat_stream(
                     user_id=current_user.id,
+                    user=current_user,
                     conversation_id=conversation_id,
                     message=payload.message,
                     model_key_id=payload.model_key_id,
                     params=payload.params,
                     system_prompt=payload.system_prompt,
                     mcp_server_ids=payload.mcp_server_ids or None,
+                    rag=payload.rag,
                 ):
                     yield f"event: {ev}\n"
                     yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"

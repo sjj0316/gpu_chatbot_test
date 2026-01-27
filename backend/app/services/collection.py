@@ -173,13 +173,20 @@ class CollectionService:
 
         try:
             self.db.add(collection)
+            await self.db.flush()
+            collection.embedding = emb_spec
+            await create_vectorstore_table(collection=collection)
             await self.db.commit()
             await self.db.refresh(collection)
-            await create_vectorstore_table(
-                collection=collection,
-            )
         except Exception as e:
             await self.db.rollback()
+            try:
+                await raw_sql(
+                    self.db,
+                    f"DROP TABLE IF EXISTS {collection.table_name} CASCADE",
+                )
+            except Exception:
+                pass
             error_id = uuid4().hex[:8]
             logger.exception(f"[{error_id}] 컬렉션 생성 중 오류 발생: {e!r}")
             raise HTTPException(

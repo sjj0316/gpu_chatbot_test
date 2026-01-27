@@ -17,6 +17,7 @@ from app.schemas import (
     MCPServerRuntime,
 )
 from app.utils import load_mcp_tools_from_servers, is_admin_user as is_admin
+from app.security import get_mcp_server_authorized
 
 
 def _ilike(term: str) -> str:
@@ -54,6 +55,27 @@ def _tool_schema(tool) -> dict | None:
     if isinstance(schema, dict):
         return schema
     return None
+
+
+_SENSITIVE_KEYS = ("token", "authorization", "api_key", "apikey", "secret")
+
+
+def _mask_config(value):
+    """
+    Why: MCP 서버 설정에 포함될 수 있는 민감정보를 응답에서 마스킹합니다.
+    """
+    if isinstance(value, dict):
+        masked = {}
+        for k, v in value.items():
+            key_l = str(k).lower()
+            if any(s in key_l for s in _SENSITIVE_KEYS):
+                masked[k] = "***"
+            else:
+                masked[k] = _mask_config(v)
+        return masked
+    if isinstance(value, list):
+        return [_mask_config(v) for v in value]
+    return value
 
 
 async def probe_mcp_server(
@@ -160,7 +182,9 @@ class MCPServerService:
             raise ValueError("MCP 서버 생성 중 무결성 오류가 발생했습니다.") from e
 
         await self.session.refresh(server)
-        return MCPServerRead.model_validate(server)
+        dto = MCPServerRead.model_validate(server)
+        dto.config = _mask_config(dto.config)
+        return dto
 
     async def get(self, server_id: int, *, user: User) -> MCPServerRead:
         """
@@ -180,14 +204,13 @@ class MCPServerService:
         Side Effects:
             - 외부 MCP 서버 연결 테스트
         """
-        server = await self.session.get(MCPServer, server_id)
-        if not server:
-            raise ValueError(f"존재하지 않는 MCP 서버 ID입니다: {server_id}")
-        if not (server.is_public or server.owner_id == user.id or is_admin(user)):
-            raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
+        server = await get_mcp_server_authorized(
+            self.session, server_id, user, require_owner=False
+        )
         dto = MCPServerRead.model_validate(server)
         runtime = await probe_mcp_server(server)
         dto = dto.model_copy(update={"runtime": runtime})
+        dto.config = _mask_config(dto.config)
 
         return dto
 
@@ -209,7 +232,9 @@ class MCPServerService:
         )
         if not server:
             raise ValueError(f"존재하지 않는 MCP 서버 이름입니다: {name!r}")
-        return MCPServerRead.model_validate(server)
+        dto = MCPServerRead.model_validate(server)
+        dto.config = _mask_config(dto.config)
+        return dto
 
     async def get_list(
         self,
@@ -252,7 +277,12 @@ class MCPServerService:
             )
         stmt = stmt.offset(max(0, offset)).limit(min(200, max(1, limit)))
         rows = (await self.session.scalars(stmt)).all()
-        return [MCPServerRead.model_validate(r) for r in rows]
+        items = []
+        for r in rows:
+            dto = MCPServerRead.model_validate(r)
+            dto.config = _mask_config(dto.config)
+            items.append(dto)
+        return items
 
     async def update(
         self, server_id: int, data: MCPServerUpdate, *, user: User
@@ -279,11 +309,11 @@ class MCPServerService:
         Side Effects:
             - DB 레코드 업데이트
         """
-        server = await self.session.get(MCPServer, server_id, with_for_update=True)
+        server = await get_mcp_server_authorized(
+            self.session, server_id, user, require_owner=True, allow_missing=True
+        )
         if not server:
-            raise ValueError(f"존재하지 않는 MCP 서버 ID입니다: {server_id}")
-        if not (server.owner_id == user.id or is_admin(user)):
-            raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+            return
 
         if data.name is not None:
             new_name = data.name.strip()
@@ -317,7 +347,9 @@ class MCPServerService:
             raise ValueError("MCP 서버 수정 중 무결성 오류가 발생했습니다.") from e
 
         await self.session.refresh(server)
-        return MCPServerRead.model_validate(server)
+        dto = MCPServerRead.model_validate(server)
+        dto.config = _mask_config(dto.config)
+        return dto
 
     async def delete(self, server_id: int, *, user: User) -> None:
         """
@@ -338,11 +370,9 @@ class MCPServerService:
         Side Effects:
             - DB 레코드 삭제
         """
-        server = await self.session.get(MCPServer, server_id)
-        if not server:
-            return
-        if not (server.owner_id == user.id or is_admin(user)):
-            raise HTTPException(status_code=403, detail="삭제 권한이 없습니다.")
+        server = await get_mcp_server_authorized(
+            self.session, server_id, user, require_owner=True
+        )
         await self.session.delete(server)
         try:
             await self.session.commit()

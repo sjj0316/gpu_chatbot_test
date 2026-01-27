@@ -12,6 +12,31 @@
 pytest backend/tests
 ```
 
+로컬 기본(Unit 중심, 통합 테스트 스킵):
+
+```bash
+cd backend
+python -m pytest -q
+```
+
+로컬에서 커버리지 기준 해제:
+
+```bash
+python -m pytest -q -o addopts=
+```
+
+통합 테스트(DB 필요) 포함 실행:
+
+```bash
+RUN_INTEGRATION=1 python -m pytest -q
+```
+
+CI 기준(커버리지 기준 포함):
+
+```bash
+RUN_INTEGRATION=1 python -m pytest -q --cov=app --cov-fail-under=80
+```
+
 특정 파일만 실행:
 
 ```bash
@@ -85,3 +110,4 @@ python -m pip install pytest-cov
 - 통합 테스트는 `DATABASE_URL` 등 환경 변수와 실제 DB 준비가 필요합니다.
 - 인증 의존성(`get_current_user`)도 테스트 내에서 오버라이드하여 권한 분기를 검증합니다.
 - 일부 테스트 데이터에 한글 문자열이 포함되어 있으며, 인코딩 환경에 따라 깨질 수 있습니다.
+- 통합 테스트는 기본 스킵되며 `RUN_INTEGRATION=1`일 때만 실행됩니다.

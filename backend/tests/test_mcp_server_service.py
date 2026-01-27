@@ -35,11 +35,21 @@ def _make_server(owner_id: int, is_public: bool = False) -> SimpleNamespace:
     )
 
 
+class _Result:
+    def __init__(self, obj=None):
+        self._obj = obj
+
+    def scalar_one_or_none(self):
+        return self._obj
+
+
 @pytest.mark.asyncio
 async def test_get_mcp_server_denied_for_private_non_owner(monkeypatch: pytest.MonkeyPatch):
     # 준비: 다른 소유자의 비공개 서버.
     session = MagicMock()
-    session.get = AsyncMock(return_value=_make_server(owner_id=2, is_public=False))
+    session.execute = AsyncMock(
+        return_value=_Result(_make_server(owner_id=2, is_public=False))
+    )
 
     # 실행/검증: 비소유자 403 차단.
     service = MCPServerService(session)
@@ -53,7 +63,9 @@ async def test_get_mcp_server_denied_for_private_non_owner(monkeypatch: pytest.M
 async def test_get_mcp_server_allows_public(monkeypatch: pytest.MonkeyPatch):
     # 준비: 공개 서버와 런타임 프로브 모킹.
     session = MagicMock()
-    session.get = AsyncMock(return_value=_make_server(owner_id=2, is_public=True))
+    session.execute = AsyncMock(
+        return_value=_Result(_make_server(owner_id=2, is_public=True))
+    )
     monkeypatch.setattr(
         "app.services.mcp_server.probe_mcp_server",
         AsyncMock(return_value=MCPServerRuntime(reachable=True, tools=[])),
@@ -72,7 +84,9 @@ async def test_get_mcp_server_allows_public(monkeypatch: pytest.MonkeyPatch):
 async def test_update_mcp_server_denied_for_non_owner():
     # 준비: 다른 소유자의 비공개 서버.
     session = MagicMock()
-    session.get = AsyncMock(return_value=_make_server(owner_id=2, is_public=False))
+    session.execute = AsyncMock(
+        return_value=_Result(_make_server(owner_id=2, is_public=False))
+    )
 
     # 실행/검증: 비소유자 업데이트 403.
     service = MCPServerService(session)
@@ -91,7 +105,7 @@ async def test_update_mcp_server_allows_admin(monkeypatch: pytest.MonkeyPatch):
     # 준비: 관리자가 비공개 서버 업데이트.
     session = MagicMock()
     server = _make_server(owner_id=2, is_public=False)
-    session.get = AsyncMock(return_value=server)
+    session.execute = AsyncMock(return_value=_Result(server))
     session.scalar = AsyncMock(return_value=None)
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
@@ -114,7 +128,9 @@ async def test_update_mcp_server_allows_admin(monkeypatch: pytest.MonkeyPatch):
 async def test_delete_mcp_server_denied_for_non_owner():
     # 준비: 다른 소유자의 비공개 서버.
     session = MagicMock()
-    session.get = AsyncMock(return_value=_make_server(owner_id=2, is_public=False))
+    session.execute = AsyncMock(
+        return_value=_Result(_make_server(owner_id=2, is_public=False))
+    )
 
     # 실행/검증: 비소유자 삭제 403.
     service = MCPServerService(session)
@@ -122,3 +138,29 @@ async def test_delete_mcp_server_denied_for_non_owner():
         await service.delete(1, user=FakeUser(1, "user"))
 
     assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_masks_sensitive_config(monkeypatch: pytest.MonkeyPatch):
+    # 준비: 민감정보가 포함된 config를 가진 서버.
+    session = MagicMock()
+    session.execute = AsyncMock(
+        return_value=_Result(_make_server(owner_id=1, is_public=True))
+    )
+    server = session.execute.return_value.scalar_one_or_none()
+    server.config = {
+        "transport": "http",
+        "url": "http://localhost:9000",
+        "api_key": "secret",
+        "headers": {"Authorization": "Bearer token"},
+    }
+    monkeypatch.setattr(
+        "app.services.mcp_server.probe_mcp_server",
+        AsyncMock(return_value=MCPServerRuntime(reachable=True, tools=[])),
+    )
+
+    service = MCPServerService(session)
+    dto = await service.get(1, user=FakeUser(1, "user"))
+
+    assert dto.config["api_key"] == "***"
+    assert dto.config["headers"]["Authorization"] == "***"
